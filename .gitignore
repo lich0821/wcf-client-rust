@@ -2,6 +2,7 @@
 !.gitignore
 
 *.lock
+target/
 
 # Logs
 logs
