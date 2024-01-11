@@ -39,6 +39,10 @@
     },
     "windows": [
       {
+        "closable": true,
+        "maximizable": false,
+        "minimizable": false,
+        "resizable": false,
         "title": "WcfRust",
         "width": 640,
         "height": 320
