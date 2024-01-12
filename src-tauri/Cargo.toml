@@ -13,6 +13,8 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
+log = "0.4"
+env_logger = "0.9"
 tauri = { version = "1.5", features = [ "system-tray", "shell-open"] }
 
 [features]

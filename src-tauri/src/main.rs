@@ -1,3 +1,5 @@
+use env_logger::Env;
+use log::info;
 use tauri::Manager;
 use tauri::SystemTray;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
@@ -31,6 +33,8 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
 }
 
 fn main() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    info!("Starting main...");
     let show = CustomMenuItem::new("show".to_string(), "显示").disabled();
     let hide = CustomMenuItem::new("hide".to_string(), "隐藏");
     let quit = CustomMenuItem::new("quit".to_string(), "退出");
