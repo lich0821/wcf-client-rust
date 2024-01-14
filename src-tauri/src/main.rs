@@ -1,8 +1,30 @@
 use env_logger::Env;
 use log::info;
+use std::sync::{Arc, Mutex};
+use tauri::command;
 use tauri::Manager;
 use tauri::SystemTray;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
+
+struct AppState {
+    http_server_state: String,
+}
+
+#[command]
+async fn start_server(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    host: String,
+    port: u16,
+) -> Result<(), String> {
+    info!("Server started on http://{}:{}", host, port);
+    Ok(())
+}
+
+#[command]
+async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+    info!("Server stopped");
+    Ok(())
+}
 
 fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemTrayEvent) {
     match event {
@@ -49,7 +71,11 @@ fn main() {
 
     let app = tauri::Builder::default()
         .system_tray(tray)
-        .on_system_tray_event(handle_system_tray_event);
+        .on_system_tray_event(handle_system_tray_event)
+        .manage(Arc::new(Mutex::new(AppState {
+            http_server_state: String::new(),
+        })))
+        .invoke_handler(tauri::generate_handler![start_server, stop_server]);
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");
