@@ -1,28 +1,49 @@
 use env_logger::Env;
-use log::info;
+use log::{error, info};
 use std::sync::{Arc, Mutex};
 use tauri::command;
 use tauri::Manager;
 use tauri::SystemTray;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
+use tokio::sync::oneshot;
+use warp::Filter;
 
 struct AppState {
-    http_server_state: String,
+    shutdown_tx: Option<oneshot::Sender<()>>,
 }
 
 #[command]
-async fn start_server(
-    state: tauri::State<'_, Arc<Mutex<AppState>>>,
-    host: String,
-    port: u16,
-) -> Result<(), String> {
-    info!("Server started on http://{}:{}", host, port);
+async fn start_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+    info!("Starting server...");
+
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let (addr, server) = warp::serve(warp::path!("hello" / "world").map(|| "Hello, world!"))
+        .bind_with_graceful_shutdown(([127, 0, 0, 1], 8888), async {
+            shutdown_rx.await.ok();
+        });
+
+    tokio::spawn(async move {
+        server.await;
+    });
+
+    let mut app_state = state.inner().lock().unwrap();
+    app_state.shutdown_tx = Some(shutdown_tx);
+
+    info!("Server started at http://{}", addr);
     Ok(())
 }
 
 #[command]
 async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
-    info!("Server stopped");
+    info!("Stopping server...");
+
+    let mut app_state = state.inner().lock().unwrap();
+    if let Some(shutdown_tx) = app_state.shutdown_tx.take() {
+        if shutdown_tx.send(()).is_err() {
+            error!("Failed to send shutdown signal");
+        }
+    }
+
     Ok(())
 }
 
@@ -72,9 +93,7 @@ fn main() {
     let app = tauri::Builder::default()
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
-        .manage(Arc::new(Mutex::new(AppState {
-            http_server_state: String::new(),
-        })))
+        .manage(Arc::new(Mutex::new(AppState { shutdown_tx: None })))
         .invoke_handler(tauri::generate_handler![start_server, stop_server]);
 
     app.run(tauri::generate_context!())
