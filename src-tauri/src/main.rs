@@ -1,49 +1,48 @@
 use env_logger::Env;
-use log::{error, info};
+use log::info;
 use std::sync::{Arc, Mutex};
 use tauri::command;
 use tauri::Manager;
 use tauri::SystemTray;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
-use tokio::sync::oneshot;
-use warp::Filter;
+
+mod http_server;
+use http_server::HttpServerState;
 
 struct AppState {
-    shutdown_tx: Option<oneshot::Sender<()>>,
+    http_server_state: HttpServerState,
 }
 
 #[command]
-async fn start_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
-    info!("Starting server...");
+async fn start_server(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    host: String,
+    port: u16,
+) -> Result<(), String> {
+    let host_bytes = host
+        .split('.')
+        .map(|part| part.parse::<u8>().unwrap_or(0))
+        .collect::<Vec<u8>>()
+        .try_into()
+        .map_err(|_| "Invalid host address".to_string())?;
 
-    let (shutdown_tx, shutdown_rx) = oneshot::channel();
-    let (addr, server) = warp::serve(warp::path!("hello" / "world").map(|| "Hello, world!"))
-        .bind_with_graceful_shutdown(([127, 0, 0, 1], 8888), async {
-            shutdown_rx.await.ok();
-        });
+    {
+        let mut app_state = state.inner().lock().unwrap();
+        app_state.http_server_state.start(host_bytes, port)?;
+    }
 
-    tokio::spawn(async move {
-        server.await;
-    });
-
-    let mut app_state = state.inner().lock().unwrap();
-    app_state.shutdown_tx = Some(shutdown_tx);
-
-    info!("Server started at http://{}", addr);
+    info!("Server started on http://{}:{}", host, port);
     Ok(())
 }
 
 #[command]
 async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
-    info!("Stopping server...");
-
-    let mut app_state = state.inner().lock().unwrap();
-    if let Some(shutdown_tx) = app_state.shutdown_tx.take() {
-        if shutdown_tx.send(()).is_err() {
-            error!("Failed to send shutdown signal");
-        }
+    {
+        let mut app_state = state.inner().lock().unwrap();
+        app_state.http_server_state.stop()?;
     }
 
+    info!("Server stopped");
     Ok(())
 }
 
@@ -93,7 +92,9 @@ fn main() {
     let app = tauri::Builder::default()
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
-        .manage(Arc::new(Mutex::new(AppState { shutdown_tx: None })))
+        .manage(Arc::new(Mutex::new(AppState {
+            http_server_state: HttpServerState::new(),
+        })))
         .invoke_handler(tauri::generate_handler![start_server, stop_server]);
 
     app.run(tauri::generate_context!())
