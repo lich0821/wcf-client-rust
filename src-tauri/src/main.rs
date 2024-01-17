@@ -6,6 +6,7 @@ use tauri::Manager;
 use tauri::SystemTray;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
 
+mod endpoints;
 mod http_server;
 use http_server::HttpServerState;
 

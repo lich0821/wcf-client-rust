@@ -1,6 +1,6 @@
+use crate::endpoints;
 use log::{error, info};
 use tokio::sync::oneshot;
-use warp::Filter;
 
 pub struct HttpServerState {
     pub shutdown_tx: Option<oneshot::Sender<()>>,
@@ -14,10 +14,12 @@ impl HttpServerState {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let addr = (host, port);
 
-        let (_, server) = warp::serve(warp::path!("ping").map(|| "pong"))
-            .bind_with_graceful_shutdown(addr, async {
-                shutdown_rx.await.ok();
-            });
+        // 使用 endpoints 模块中的函数获取所有路由
+        let routes = endpoints::get_routes();
+
+        let (_, server) = warp::serve(routes).bind_with_graceful_shutdown(addr, async {
+            shutdown_rx.await.ok();
+        });
 
         tokio::spawn(async move {
             server.await;
