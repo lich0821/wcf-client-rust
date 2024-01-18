@@ -1,5 +1,5 @@
-use std::time::SystemTime;
-use warp::reply::json;
+use std::time::{SystemTime, UNIX_EPOCH};
+use warp::reply::{json, Json};
 use warp::Filter;
 use warp::Rejection;
 use warp::Reply;
@@ -23,10 +23,23 @@ pub fn current_time() -> impl Filter<Extract = impl Reply, Error = Rejection> + 
     })
 }
 
+pub fn unix_time() -> impl Filter<Extract = ((Json,),), Error = Rejection> + Clone {
+    warp::path("time").map(|| {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_secs();
+
+        (warp::reply::json(&timestamp),)
+    })
+}
+
 pub fn get_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     let api_v1 = warp::path("api")
         .and(warp::path("v1"))
         .and(hello_world().or(ping()).or(health()).or(current_time()));
 
-    api_v1
+    let api_v2 = warp::path("api").and(warp::path("v2")).and(unix_time());
+
+    api_v1.or(api_v2)
 }
