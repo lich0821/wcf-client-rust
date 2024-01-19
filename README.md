@@ -9,3 +9,15 @@ cargo tauri dev
 # 如果遇到错误，可以启用更多调试信息
 RUST_BACKTRACE=full RUST_LOG=debug cargo tauri dev
 ```
+
+### 验证
+#### 查看监听端口
+`启动` 后，查看相关端口会显示相关信息
+```sh
+lsof -i :8888
+```
+
+#### 直接访问
+```sh
+curl http://localhost:8888/api/v1/time
+```
