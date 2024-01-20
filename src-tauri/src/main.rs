@@ -1,5 +1,4 @@
-use env_logger::Env;
-use log::info;
+use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use std::sync::{Arc, Mutex};
 use tauri::command;
 use tauri::Manager;
@@ -9,6 +8,25 @@ use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
 mod endpoints;
 mod http_server;
 use http_server::HttpServerState;
+
+struct FrontendLogger {
+    app_handle: tauri::AppHandle,
+}
+
+impl Log for FrontendLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= Level::Info
+    }
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            let msg = format!("{} - {}", record.level(), record.args());
+            self.app_handle.emit_all("log-message", msg).unwrap();
+        }
+    }
+
+    fn flush(&self) {}
+}
 
 struct AppState {
     http_server_state: HttpServerState,
@@ -76,8 +94,6 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
 }
 
 fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    info!("Starting main...");
     let show = CustomMenuItem::new("show".to_string(), "显示").disabled();
     let hide = CustomMenuItem::new("hide".to_string(), "隐藏");
     let quit = CustomMenuItem::new("quit".to_string(), "退出");
@@ -91,6 +107,16 @@ fn main() {
     let tray = SystemTray::new().with_menu(tray_menu);
 
     let app = tauri::Builder::default()
+        .setup(|app| {
+            let app_handle = app.app_handle();
+
+            // 初始化日志记录器
+            log::set_boxed_logger(Box::new(FrontendLogger { app_handle }))
+                .map(|()| log::set_max_level(LevelFilter::Info))
+                .expect("Failed to initialize logger");
+
+            Ok(())
+        })
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
         .manage(Arc::new(Mutex::new(AppState {
@@ -100,4 +126,5 @@ fn main() {
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");
+    info!("Ending main...");
 }
