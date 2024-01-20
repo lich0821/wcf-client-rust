@@ -126,5 +126,4 @@ fn main() {
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");
-    info!("Ending main...");
 }
