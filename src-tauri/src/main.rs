@@ -1,3 +1,4 @@
+use chrono::Local;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use std::sync::{Arc, Mutex};
 use tauri::command;
@@ -20,7 +21,12 @@ impl Log for FrontendLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            let msg = format!("{} - {}", record.level(), record.args());
+            let msg = format!(
+                "{} [{}] {}",
+                Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.level(),
+                record.args()
+            );
             self.app_handle.emit_all("log-message", msg).unwrap();
         }
     }
