@@ -1,5 +1,5 @@
 use crate::endpoints;
-use log::{error, info};
+use log::{debug, error};
 use tokio::sync::oneshot;
 
 pub struct HttpServerState {
@@ -26,7 +26,7 @@ impl HttpServerState {
         });
 
         self.shutdown_tx = Some(shutdown_tx);
-        info!(
+        debug!(
             "HTTP server started at http://{}:{}",
             host.iter()
                 .map(|b| b.to_string())
@@ -45,7 +45,7 @@ impl HttpServerState {
                 }
             });
         }
-        info!("HTTP server stopped");
+        debug!("HTTP server stopped");
         Ok(())
     }
 }
