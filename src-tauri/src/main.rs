@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use chrono::Local;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use std::sync::{Arc, Mutex};
