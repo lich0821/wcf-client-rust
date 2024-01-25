@@ -21,3 +21,7 @@ lsof -i :8888
 ```sh
 curl http://localhost:8888/api/v1/time
 ```
+
+### 定制 Logo
+1. 找一张 logo 图片 `your_path/logo.png`（1024*1024 的 PNG 图片）
+2. 通过命令重新生成：`cargo tauri icon your_path/logo.png`
