@@ -25,7 +25,7 @@ impl Log for FrontendLogger {
         if self.enabled(record.metadata()) {
             let msg = format!(
                 "{} [{}] {}",
-                Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
                 record.level(),
                 record.args()
             );
