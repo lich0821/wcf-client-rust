@@ -1,6 +1,7 @@
 use log::{debug, error, info};
 use nng::options::{Options, RecvTimeout};
 use prost::Message;
+use serde::Serialize;
 use std::os::windows::process::CommandExt;
 use std::thread::sleep;
 use std::{env, path::PathBuf, process::Command, time::Duration, vec};
@@ -18,6 +19,14 @@ pub struct WeChat {
     pub debug: bool,
     pub socket: nng::Socket,
     pub listening: bool,
+}
+
+#[derive(Clone, Debug, Serialize)] // 添加 Serialize trait
+pub struct UserInfo {
+    pub wxid: String,
+    pub name: String,
+    pub mobile: String,
+    pub home: String,
 }
 
 impl Default for WeChat {
@@ -198,6 +207,36 @@ impl WeChat {
         match response.unwrap() {
             wcf::response::Msg::Str(wxid) => {
                 return Ok(Some(wxid));
+            }
+            _ => {
+                return Ok(None);
+            }
+        };
+    }
+
+    pub fn get_user_info(self) -> Result<Option<UserInfo>, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetUserInfo.into(),
+            msg: None,
+        };
+        let response = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("命令发送失败: {}", e);
+                return Err("获取用户信息失败".into());
+            }
+        };
+        if response.is_none() {
+            return Ok(None);
+        }
+        match response.unwrap() {
+            wcf::response::Msg::Ui(ui) => {
+                return Ok(Some(UserInfo {
+                    wxid: ui.wxid,
+                    name: ui.name,
+                    mobile: ui.mobile,
+                    home: ui.home,
+                }));
             }
             _ => {
                 return Ok(None);

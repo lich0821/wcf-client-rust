@@ -65,9 +65,11 @@ impl HttpServer {
     }
 
     fn get_routes(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-        let gets = warp::path("api")
-            .and(warp::path("v1"))
-            .and(self.is_login().or(self.get_self_wxid()));
+        let gets = warp::path("api").and(warp::path("v1")).and(
+            self.is_login()
+                .or(self.get_self_wxid())
+                .or(self.get_user_info()),
+        );
 
         let posts = warp::post()
             .and(warp::path("api"))
@@ -103,6 +105,25 @@ impl HttpServer {
                 status: 0,
                 error: None,
                 data: wxid.clone(),
+            };
+
+            warp::reply::json(&response)
+        })
+    }
+
+    fn get_user_info(&self) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        let ui = self
+            .wechat
+            .clone()
+            .unwrap()
+            .get_user_info()
+            .unwrap()
+            .unwrap();
+        warp::path("userinfo").map(move || {
+            let response = ApiResponse {
+                status: 0,
+                error: None,
+                data: ui.clone(),
             };
 
             warp::reply::json(&response)
