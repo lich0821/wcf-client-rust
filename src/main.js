@@ -8,7 +8,7 @@ let btnStart;
 var flag = false;
 
 async function _start() {
-    invoke('start_server', { "host": "127.0.0.1", "port": 8888 });
+    invoke('start_server', { "host": "0.0.0.0", "port": 10010 });
     btnStart.textContent = "停止";
 }
 
