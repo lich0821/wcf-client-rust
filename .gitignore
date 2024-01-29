@@ -3,6 +3,7 @@
 
 *.lock
 target/
+wcf.rs
 
 # Logs
 logs
