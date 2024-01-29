@@ -153,7 +153,7 @@ impl WeChat {
             }
         };
         // 反序列化为prost消息
-        let response = match wcf::Response::decode(msg.as_slice()) {
+        let rsp = match wcf::Response::decode(msg.as_slice()) {
             Ok(res) => res,
             Err(e) => {
                 error!("反序列化失败: {}", e);
@@ -161,7 +161,7 @@ impl WeChat {
             }
         };
         msg.clear();
-        Ok(response.msg)
+        Ok(rsp.msg)
     }
 
     pub fn is_login(self) -> Result<bool, Box<dyn std::error::Error>> {
@@ -169,77 +169,22 @@ impl WeChat {
             func: wcf::Functions::FuncIsLogin.into(),
             msg: None,
         };
-        let response = match self.send_cmd(req) {
+        let rsp = match self.send_cmd(req) {
             Ok(res) => res,
             Err(e) => {
                 error!("命令发送失败: {}", e);
                 return Err("登录状态检查失败".into());
             }
         };
-        if response.is_none() {
+        if rsp.is_none() {
             return Ok(false);
         }
-        match response.unwrap() {
+        match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
                 return Ok(1 == status);
             }
             _ => {
                 return Ok(false);
-            }
-        };
-    }
-
-    pub fn get_self_wxid(self) -> Result<Option<String>, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetSelfWxid.into(),
-            msg: None,
-        };
-        let response = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("命令发送失败: {}", e);
-                return Err("获取微信ID失败".into());
-            }
-        };
-        if response.is_none() {
-            return Ok(None);
-        }
-        match response.unwrap() {
-            wcf::response::Msg::Str(wxid) => {
-                return Ok(Some(wxid));
-            }
-            _ => {
-                return Ok(None);
-            }
-        };
-    }
-
-    pub fn get_user_info(self) -> Result<Option<UserInfo>, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetUserInfo.into(),
-            msg: None,
-        };
-        let response = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("命令发送失败: {}", e);
-                return Err("获取用户信息失败".into());
-            }
-        };
-        if response.is_none() {
-            return Ok(None);
-        }
-        match response.unwrap() {
-            wcf::response::Msg::Ui(ui) => {
-                return Ok(Some(UserInfo {
-                    wxid: ui.wxid,
-                    name: ui.name,
-                    mobile: ui.mobile,
-                    home: ui.home,
-                }));
-            }
-            _ => {
-                return Ok(None);
             }
         };
     }

@@ -17,6 +17,8 @@ tauri-build = { version = "1.5", features = [] }
 log = "0.4"
 nng = "1.0.1"
 warp = "0.3"
+utoipa = "4"
+utoipa-swagger-ui = "6"
 chrono = "0.4"
 prost = "0.11.6"
 env_logger = "0.9"

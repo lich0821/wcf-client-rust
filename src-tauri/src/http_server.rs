@@ -1,21 +1,13 @@
-use crate::wcferry::WeChat;
 use log::{debug, error};
-use serde::Serialize;
+use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
-use warp::Filter;
-use warp::Rejection;
-use warp::Reply;
+
+use crate::endpoints;
+use crate::wcferry::WeChat;
 
 pub struct HttpServer {
     pub shutdown_tx: Option<oneshot::Sender<()>>,
-    pub wechat: Option<WeChat>,
-}
-
-#[derive(Serialize)]
-struct ApiResponse<T> {
-    status: u16,           // 状态码，可以根据需要定义
-    error: Option<String>, // 消息
-    data: T,               // 数据字段，泛型类型，可以根据需要定义
+    pub wechat: Option<Arc<Mutex<WeChat>>>,
 }
 
 impl HttpServer {
@@ -25,12 +17,14 @@ impl HttpServer {
             wechat: None,
         }
     }
+
     pub fn start(&mut self, host: [u8; 4], port: u16) -> Result<(), String> {
-        self.wechat = Some(WeChat::new(true));
+        let wechat = Arc::new(Mutex::new(WeChat::new(true)));
+        self.wechat = Some(wechat.clone());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let addr = (host, port);
 
-        let routes = self.get_routes();
+        let routes = endpoints::get_routes(wechat);
         let (_, server) = warp::serve(routes).bind_with_graceful_shutdown(addr, async {
             shutdown_rx.await.ok();
         });
@@ -59,74 +53,11 @@ impl HttpServer {
                 }
             });
         }
+        if let Some(wechat) = &self.wechat {
+            let mut wechat = wechat.lock().unwrap(); // 获取 Mutex 的锁
+            wechat.stop().unwrap();
+        }
         debug!("HTTP server stopped");
-        self.wechat.as_mut().unwrap().stop().unwrap();
         Ok(())
-    }
-
-    fn get_routes(&self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-        let gets = warp::path("api").and(warp::path("v1")).and(
-            self.is_login()
-                .or(self.get_self_wxid())
-                .or(self.get_user_info()),
-        );
-
-        let posts = warp::post()
-            .and(warp::path("api"))
-            .and(warp::path("v1"))
-            .and(self.get_self_wxid());
-
-        gets.or(posts)
-    }
-
-    fn is_login(&self) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-        let status = self.wechat.clone().unwrap().is_login().unwrap();
-        warp::path("is_login").map(move || {
-            let response = ApiResponse {
-                status: 0,
-                error: None,
-                data: status,
-            };
-
-            warp::reply::json(&response)
-        })
-    }
-
-    fn get_self_wxid(&self) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-        let wxid = self
-            .wechat
-            .clone()
-            .unwrap()
-            .get_self_wxid()
-            .unwrap()
-            .unwrap();
-        warp::path("self_wxid").map(move || {
-            let response = ApiResponse {
-                status: 0,
-                error: None,
-                data: wxid.clone(),
-            };
-
-            warp::reply::json(&response)
-        })
-    }
-
-    fn get_user_info(&self) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-        let ui = self
-            .wechat
-            .clone()
-            .unwrap()
-            .get_user_info()
-            .unwrap()
-            .unwrap();
-        warp::path("userinfo").map(move || {
-            let response = ApiResponse {
-                status: 0,
-                error: None,
-                data: ui.clone(),
-            };
-
-            warp::reply::json(&response)
-        })
     }
 }
