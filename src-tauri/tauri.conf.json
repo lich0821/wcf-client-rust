@@ -30,6 +30,9 @@
         "icons/icon.png",
         "icons/icon.icns",
         "icons/icon.ico"
+      ],
+      "resources":[
+        ".\\src\\wcferry\\lib"
       ]
     },
     "security": {

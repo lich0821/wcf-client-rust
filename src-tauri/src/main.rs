@@ -8,9 +8,9 @@ use tauri::Manager;
 use tauri::SystemTray;
 use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
 
-mod endpoints;
 mod http_server;
-use http_server::HttpServerState;
+mod wcferry;
+use http_server::HttpServer;
 
 struct FrontendLogger {
     app_handle: tauri::AppHandle,
@@ -37,7 +37,7 @@ impl Log for FrontendLogger {
 }
 
 struct AppState {
-    http_server_state: HttpServerState,
+    http_server: HttpServer,
 }
 
 #[command]
@@ -55,7 +55,7 @@ async fn start_server(
 
     {
         let mut app_state = state.inner().lock().unwrap();
-        app_state.http_server_state.start(host_bytes, port)?;
+        app_state.http_server.start(host_bytes, port)?;
     }
 
     info!("Server started on http://{}:{}", host, port);
@@ -66,7 +66,7 @@ async fn start_server(
 async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
     {
         let mut app_state = state.inner().lock().unwrap();
-        app_state.http_server_state.stop()?;
+        app_state.http_server.stop()?;
     }
 
     info!("Server stopped");
@@ -128,7 +128,7 @@ fn main() {
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
         .manage(Arc::new(Mutex::new(AppState {
-            http_server_state: HttpServerState::new(),
+            http_server: HttpServer::new(),
         })))
         .invoke_handler(tauri::generate_handler![start_server, stop_server]);
 

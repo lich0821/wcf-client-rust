@@ -10,13 +10,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
+prost-build = "0.11.6"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
 log = "0.4"
+nng = "1.0.1"
 warp = "0.3"
 chrono = "0.4"
+prost = "0.11.6"
 env_logger = "0.9"
+serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 tauri = { version = "1.5", features = [ "system-tray", "shell-open"] }
 
