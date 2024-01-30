@@ -121,7 +121,7 @@ impl WeChat {
                 return Err("服务停止失败".into());
             }
         };
-        info!("服务已停止: {}", self.url);
+        debug!("服务已停止: {}", self.url);
         Ok(())
     }
 
