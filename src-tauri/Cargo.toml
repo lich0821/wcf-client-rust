@@ -1,7 +1,7 @@
 [package]
 name = "wcfrust"
 version = "0.1.0"
-description = "A Rust client for WeChatFerry"
+description = "A HTTP (Rust) client for WeChatFerry"
 authors = ["Changhua"]
 license = "MIT"
 repository = "https://github.com/lich0821/wcf-client-rust"
