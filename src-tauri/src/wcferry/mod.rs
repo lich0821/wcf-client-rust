@@ -133,31 +133,31 @@ impl WeChat {
         match req.encode(&mut buf) {
             Ok(()) => (),
             Err(e) => {
-                error!("序列化失败: {}", e);
-                return Err("通信失败".into());
+                error!("编码失败: {}", e);
+                return Err("编码失败".into());
             }
         };
         let msg = nng::Message::from(&buf[..]);
         let _ = match self.socket.send(msg) {
             Ok(()) => {}
             Err(e) => {
-                error!("Socket发送失败: {:?}, {}", e.0, e.1);
-                return Err("通信失败".into());
+                error!("消息发送失败: {:?}, {}", e.0, e.1);
+                return Err("消息发送失败".into());
             }
         };
         let mut msg = match self.socket.recv() {
             Ok(msg) => msg,
             Err(e) => {
-                error!("Socket接收失败: {}", e);
-                return Err("通信失败".into());
+                error!("消息接收失败: {}", e);
+                return Err("消息接收失败".into());
             }
         };
         // 反序列化为prost消息
         let rsp = match wcf::Response::decode(msg.as_slice()) {
             Ok(res) => res,
             Err(e) => {
-                error!("反序列化失败: {}", e);
-                return Err("通信失败".into());
+                error!("解码失败: {}", e);
+                return Err("解码失败".into());
             }
         };
         msg.clear();
@@ -172,8 +172,8 @@ impl WeChat {
         let rsp = match self.send_cmd(req) {
             Ok(res) => res,
             Err(e) => {
-                error!("命令发送失败: {}", e);
-                return Err("登录状态检查失败".into());
+                error!("登录状态命令发送失败: {}", e);
+                return Err("登录状态命令发送失败".into());
             }
         };
         if rsp.is_none() {
@@ -185,6 +185,31 @@ impl WeChat {
             }
             _ => {
                 return Ok(false);
+            }
+        };
+    }
+
+    pub fn get_self_wxid(self) -> Result<String, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetSelfWxid.into(),
+            msg: None,
+        };
+        let response = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("查询 wxid 命令发送失败: {}", e);
+                return Err("查询 wxid 命令发送失败".into());
+            }
+        };
+        if response.is_none() {
+            return Ok("".to_string());
+        }
+        match response.unwrap() {
+            wcf::response::Msg::Str(wxid) => {
+                return Ok(wxid);
+            }
+            _ => {
+                return Ok("".to_string());
             }
         };
     }

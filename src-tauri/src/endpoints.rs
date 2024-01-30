@@ -14,7 +14,7 @@ use warp::{
 use crate::wcferry::WeChat;
 
 #[derive(Serialize, ToSchema, Clone)]
-#[aliases(ApiResponseBool = ApiResponse<bool>)]
+#[aliases(ApiResponseBool = ApiResponse<bool>, ApiResponseString = ApiResponse<String>)]
 struct ApiResponse<T>
 where
     T: Serialize,
@@ -30,7 +30,11 @@ pub fn get_routes(
     let config = Arc::new(Config::from("/api-doc.json"));
 
     #[derive(OpenApi)]
-    #[openapi(paths(is_login), components(schemas(ApiResponse<String>, ApiResponse<bool>)))]
+    #[openapi(
+        paths(is_login, get_self_wxid),
+        components(schemas(ApiResponse<bool>, ApiResponse<String>)),
+        tags((name = "WCF", description = "玩微信的接口"))
+    )]
     struct ApiDoc;
 
     let api_doc = warp::path("api-doc.json")
@@ -52,7 +56,17 @@ pub fn get_routes(
             .and_then(is_login)
     }
 
-    api_doc.or(swagger_ui).or(islogin(wechat))
+    fn selfwxid(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path("selfwxid")
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(get_self_wxid)
+    }
+
+    api_doc
+        .or(swagger_ui)
+        .or(islogin(wechat.clone()).or(selfwxid(wechat.clone())))
 }
 
 async fn serve_swagger(
@@ -89,9 +103,10 @@ async fn serve_swagger(
 
 #[utoipa::path(
     get,
+    tag = "WCF",
     path = "/islogin",
     responses(
-        (status = 200, body = ApiResponseBool, description = "Returns login status")
+        (status = 200, body = ApiResponseBool, description = "查询微信登录状态")
     )
 )]
 pub async fn is_login(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
@@ -101,6 +116,31 @@ pub async fn is_login(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
             status: 0,
             error: None,
             data: Some(status),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    get,
+    tag = "WCF",
+    path = "/selfwxid",
+    responses(
+        (status = 200, body = ApiResponseString, description = "返回登录账户 wxid")
+    )
+)]
+pub async fn get_self_wxid(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().get_self_wxid() {
+        Ok(wxid) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(wxid),
         },
         Err(error) => ApiResponse {
             status: 1,
