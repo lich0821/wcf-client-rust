@@ -60,6 +60,7 @@ async fn start_server(
     }
 
     info!("Server started on http://{}:{}", host, port);
+    info!("浏览器访问 http://localhost:{}/swagger/ 查看文档", port);
     Ok(())
 }
 
