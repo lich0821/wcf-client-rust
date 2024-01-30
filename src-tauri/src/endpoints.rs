@@ -11,7 +11,7 @@ use warp::{
     Filter, Rejection, Reply,
 };
 
-use crate::wcferry::{WeChat, UserInfo};
+use crate::wcferry::{wcf::UserInfo, WeChat};
 
 #[derive(Serialize, ToSchema, Clone)]
 #[aliases(ApiResponseBool = ApiResponse<bool>,

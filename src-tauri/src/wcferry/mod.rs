@@ -1,11 +1,9 @@
 use log::{debug, error, info};
 use nng::options::{Options, RecvTimeout};
 use prost::Message;
-use serde::Serialize;
 use std::os::windows::process::CommandExt;
 use std::thread::sleep;
 use std::{env, path::PathBuf, process::Command, time::Duration, vec};
-use utoipa::ToSchema;
 
 const DEFAULT_URL: &'static str = "tcp://127.0.0.1:10086";
 
@@ -20,14 +18,6 @@ pub struct WeChat {
     pub debug: bool,
     pub socket: nng::Socket,
     pub listening: bool,
-}
-
-#[derive(Clone, Debug, Serialize, ToSchema)]
-pub struct UserInfo {
-    pub wxid: String,
-    pub name: String,
-    pub mobile: String,
-    pub home: String,
 }
 
 impl Default for WeChat {
@@ -215,7 +205,7 @@ impl WeChat {
         };
     }
 
-    pub fn get_user_info(self) -> Result<UserInfo, Box<dyn std::error::Error>> {
+    pub fn get_user_info(self) -> Result<wcf::UserInfo, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncGetUserInfo.into(),
             msg: None,
@@ -230,7 +220,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Ui(ui) => {
-                return Ok(UserInfo {
+                return Ok(wcf::UserInfo {
                     wxid: ui.wxid,
                     name: ui.name,
                     mobile: ui.mobile,
