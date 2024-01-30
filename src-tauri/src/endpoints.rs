@@ -11,12 +11,16 @@ use warp::{
     Filter, Rejection, Reply,
 };
 
-use crate::wcferry::{wcf::UserInfo, WeChat};
+use crate::wcferry::{
+    wcf::{RpcContact, RpcContacts, UserInfo},
+    WeChat,
+};
 
 #[derive(Serialize, ToSchema, Clone)]
 #[aliases(ApiResponseBool = ApiResponse<bool>,
     ApiResponseString = ApiResponse<String>,
-    ApiResponseUserInfo = ApiResponse<UserInfo>)]
+    ApiResponseUserInfo = ApiResponse<UserInfo>,
+    ApiResponseContacts = ApiResponse<RpcContacts>)]
 struct ApiResponse<T>
 where
     T: Serialize,
@@ -33,8 +37,8 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid, get_user_info),
-        components(schemas(ApiResponse<bool>, ApiResponse<String>, UserInfo)),
+        paths(is_login, get_self_wxid, get_user_info, get_contacts),
+        components(schemas(ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact)),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
     struct ApiDoc;
@@ -74,11 +78,20 @@ pub fn get_routes(
             .and_then(get_user_info)
     }
 
+    fn contacts(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path("contacts")
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(get_contacts)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
         .or(selfwxid(wechat.clone()))
         .or(userinfo(wechat.clone()))
+        .or(contacts(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -178,6 +191,31 @@ pub async fn get_user_info(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
             status: 0,
             error: None,
             data: Some(ui),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    get,
+    tag = "WCF",
+    path = "/contacts",
+    responses(
+        (status = 200, body = ApiResponseContacts, description = "返回登录账户用户信息")
+    )
+)]
+pub async fn get_contacts(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().get_contacts() {
+        Ok(contacts) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(contacts),
         },
         Err(error) => ApiResponse {
             status: 1,

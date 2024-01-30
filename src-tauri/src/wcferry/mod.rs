@@ -220,15 +220,33 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Ui(ui) => {
-                return Ok(wcf::UserInfo {
-                    wxid: ui.wxid,
-                    name: ui.name,
-                    mobile: ui.mobile,
-                    home: ui.home,
-                });
+                return Ok(ui);
             }
             _ => {
                 return Err("获取用户信息失败".into());
+            }
+        };
+    }
+
+    pub fn get_contacts(self) -> Result<wcf::RpcContacts, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetContacts.into(),
+            msg: None,
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("获取联系人列表命令发送失败: {}", e);
+                return Err("获取联系人列表命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Contacts(contacts) => {
+                return Ok(contacts);
+            }
+            _ => {
+                return Err("获取联系人列表失败".into());
             }
         };
     }
