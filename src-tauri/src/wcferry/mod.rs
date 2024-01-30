@@ -5,6 +5,7 @@ use serde::Serialize;
 use std::os::windows::process::CommandExt;
 use std::thread::sleep;
 use std::{env, path::PathBuf, process::Command, time::Duration, vec};
+use utoipa::ToSchema;
 
 const DEFAULT_URL: &'static str = "tcp://127.0.0.1:10086";
 
@@ -21,7 +22,7 @@ pub struct WeChat {
     pub listening: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, ToSchema)]
 pub struct UserInfo {
     pub wxid: String,
     pub name: String,
@@ -210,6 +211,34 @@ impl WeChat {
             }
             _ => {
                 return Ok("".to_string());
+            }
+        };
+    }
+
+    pub fn get_user_info(self) -> Result<UserInfo, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetUserInfo.into(),
+            msg: None,
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("获取用户信息命令发送失败: {}", e);
+                return Err("获取用户信息命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Ui(ui) => {
+                return Ok(UserInfo {
+                    wxid: ui.wxid,
+                    name: ui.name,
+                    mobile: ui.mobile,
+                    home: ui.home,
+                });
+            }
+            _ => {
+                return Err("获取用户信息失败".into());
             }
         };
     }

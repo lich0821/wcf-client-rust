@@ -11,10 +11,12 @@ use warp::{
     Filter, Rejection, Reply,
 };
 
-use crate::wcferry::WeChat;
+use crate::wcferry::{WeChat, UserInfo};
 
 #[derive(Serialize, ToSchema, Clone)]
-#[aliases(ApiResponseBool = ApiResponse<bool>, ApiResponseString = ApiResponse<String>)]
+#[aliases(ApiResponseBool = ApiResponse<bool>,
+    ApiResponseString = ApiResponse<String>,
+    ApiResponseUserInfo = ApiResponse<UserInfo>)]
 struct ApiResponse<T>
 where
     T: Serialize,
@@ -31,8 +33,8 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid),
-        components(schemas(ApiResponse<bool>, ApiResponse<String>)),
+        paths(is_login, get_self_wxid, get_user_info),
+        components(schemas(ApiResponse<bool>, ApiResponse<String>, UserInfo)),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
     struct ApiDoc;
@@ -64,9 +66,19 @@ pub fn get_routes(
             .and_then(get_self_wxid)
     }
 
+    fn userinfo(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path("userinfo")
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(get_user_info)
+    }
+
     api_doc
         .or(swagger_ui)
-        .or(islogin(wechat.clone()).or(selfwxid(wechat.clone())))
+        .or(islogin(wechat.clone()))
+        .or(selfwxid(wechat.clone()))
+        .or(userinfo(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -141,6 +153,31 @@ pub async fn get_self_wxid(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
             status: 0,
             error: None,
             data: Some(wxid),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    get,
+    tag = "WCF",
+    path = "/userinfo",
+    responses(
+        (status = 200, body = ApiResponseUserInfo, description = "返回登录账户用户信息")
+    )
+)]
+pub async fn get_user_info(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().get_user_info() {
+        Ok(ui) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(ui),
         },
         Err(error) => ApiResponse {
             status: 1,
