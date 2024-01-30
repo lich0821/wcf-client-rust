@@ -250,4 +250,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn get_dbs(self) -> Result<wcf::DbNames, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetDbNames.into(),
+            msg: None,
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("获取数据库名称命令发送失败: {}", e);
+                return Err("获取数据库名称命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Dbs(dbs) => {
+                return Ok(dbs);
+            }
+            _ => {
+                return Err("获取数据库名称失败".into());
+            }
+        };
+    }
 }
