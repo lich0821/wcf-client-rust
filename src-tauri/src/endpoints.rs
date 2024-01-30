@@ -21,7 +21,7 @@ where
 {
     status: u16,
     error: Option<String>,
-    data: T,
+    data: Option<T>,
 }
 
 pub fn get_routes(
@@ -96,11 +96,17 @@ async fn serve_swagger(
 )]
 pub async fn is_login(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
-    let status = wechat.clone().is_login().unwrap();
-    let rsp = ApiResponse {
-        status: 0,
-        error: None,
-        data: status,
+    let rsp = match wechat.clone().is_login() {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
     };
     Ok(warp::reply::json(&rsp))
 }
