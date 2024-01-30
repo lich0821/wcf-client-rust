@@ -21,7 +21,7 @@ pub struct WeChat {
     pub listening: bool,
 }
 
-#[derive(Clone, Debug, Serialize)] // 添加 Serialize trait
+#[derive(Clone, Debug, Serialize)]
 pub struct UserInfo {
     pub wxid: String,
     pub name: String,
@@ -194,17 +194,17 @@ impl WeChat {
             func: wcf::Functions::FuncGetSelfWxid.into(),
             msg: None,
         };
-        let response = match self.send_cmd(req) {
+        let rsp = match self.send_cmd(req) {
             Ok(res) => res,
             Err(e) => {
                 error!("查询 wxid 命令发送失败: {}", e);
                 return Err("查询 wxid 命令发送失败".into());
             }
         };
-        if response.is_none() {
+        if rsp.is_none() {
             return Ok("".to_string());
         }
-        match response.unwrap() {
+        match rsp.unwrap() {
             wcf::response::Msg::Str(wxid) => {
                 return Ok(wxid);
             }
