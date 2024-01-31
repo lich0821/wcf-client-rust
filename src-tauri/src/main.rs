@@ -46,6 +46,7 @@ async fn start_server(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     host: String,
     port: u16,
+    cburl: String,
 ) -> Result<(), String> {
     let host_bytes = host
         .split('.')
@@ -56,10 +57,10 @@ async fn start_server(
 
     {
         let mut app_state = state.inner().lock().unwrap();
-        app_state.http_server.start(host_bytes, port)?;
+        app_state.http_server.start(host_bytes, port, cburl)?;
     }
 
-    info!("Server started on http://{}:{}", host, port);
+    info!("服务启动，监听 http://{}:{}", host, port);
     info!("浏览器访问 http://localhost:{}/swagger/ 查看文档", port);
     Ok(())
 }
@@ -71,7 +72,7 @@ async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<()
         app_state.http_server.stop()?;
     }
 
-    info!("Server stopped");
+    info!("服务停止");
     Ok(())
 }
 

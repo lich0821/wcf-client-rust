@@ -1,4 +1,4 @@
-use log::{debug, error};
+use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
 
@@ -18,7 +18,7 @@ impl HttpServer {
         }
     }
 
-    pub fn start(&mut self, host: [u8; 4], port: u16) -> Result<(), String> {
+    pub fn start(&mut self, host: [u8; 4], port: u16, cburl: String) -> Result<(), String> {
         let wechat = Arc::new(Mutex::new(WeChat::new(true)));
         self.wechat = Some(wechat.clone());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
@@ -42,6 +42,13 @@ impl HttpServer {
                 .join("."),
             port
         );
+
+        if cburl.is_empty() {
+            info!("没有设置回调，消息打印在这里");
+        } else {
+            info!("设置回调: {}", cburl);
+        }
+
         Ok(())
     }
 

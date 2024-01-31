@@ -7,8 +7,8 @@ let logTextarea;
 let btnStart;
 var flag = false;
 
-async function _start() {
-    invoke('start_server', { "host": "0.0.0.0", "port": 10010 });
+async function _start(cburl) {
+    invoke('start_server', { "host": "0.0.0.0", "port": 10010, "cburl": cburl });
     btnStart.textContent = "停止";
 }
 
@@ -17,12 +17,12 @@ async function _stop() {
     btnStart.textContent = "启动";
 }
 
-async function start() {
+async function start(cburl) {
     if (flag) {
         await _stop();
         flag = false;
     } else {
-        await _start();
+        await _start(cburl);
         flag = true;
     }
 }
@@ -53,7 +53,7 @@ window.addEventListener("DOMContentLoaded", () => {
     logTextarea.textContent = "填写回调地址（不填写也可以，消息会显示在此处），然后点击【启动】\n";
     document.querySelector("#log-form").addEventListener("submit", (e) => {
         e.preventDefault();
-        start();
+        start(urlInputEl.value);
     });
     startSerialEventListener();
 });
