@@ -273,4 +273,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn get_tables(self, db: String) -> Result<wcf::DbTables, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetDbTables.into(),
+            msg: Some(wcf::request::Msg::Str(db)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("获取数据表命令发送失败: {}", e);
+                return Err("获取数据表命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Tables(tables) => {
+                return Ok(tables);
+            }
+            _ => {
+                return Err("获取数据表失败".into());
+            }
+        };
+    }
 }
