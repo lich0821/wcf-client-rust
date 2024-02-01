@@ -1,11 +1,16 @@
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use nng::options::{Options, RecvTimeout};
 use prost::Message;
 use std::os::windows::process::CommandExt;
-use std::thread::sleep;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::thread::{self, sleep};
 use std::{env, path::PathBuf, process::Command, time::Duration, vec};
 
-const DEFAULT_URL: &'static str = "tcp://127.0.0.1:10086";
+const CMD_URL: &'static str = "tcp://127.0.0.1:10086";
+const MSG_URL: &'static str = "tcp://127.0.0.1:10087";
 
 pub mod wcf {
     include!("wcf.rs");
@@ -16,8 +21,9 @@ pub struct WeChat {
     pub url: String,
     pub exe: PathBuf,
     pub debug: bool,
-    pub socket: nng::Socket,
-    pub listening: bool,
+    pub listening: Arc<AtomicBool>,
+    pub cmd_socket: nng::Socket,
+    pub msg_socket: Option<nng::Socket>,
 }
 
 impl Default for WeChat {
@@ -32,13 +38,14 @@ impl WeChat {
             .unwrap()
             .join("src\\wcferry\\lib\\wcf.exe");
         let _ = WeChat::start(exe.clone(), debug);
-        let socket = WeChat::connect(&DEFAULT_URL).unwrap();
+        let cmd_socket = WeChat::connect(&CMD_URL).unwrap();
         let wc = WeChat {
-            url: String::from(DEFAULT_URL),
+            url: String::from(CMD_URL),
             exe: exe,
             debug,
-            socket,
-            listening: false,
+            listening: Arc::new(AtomicBool::new(false)),
+            cmd_socket,
+            msg_socket: None,
         };
         info!("等待微信登录...");
         while !wc.clone().is_login().unwrap() {
@@ -100,7 +107,11 @@ impl WeChat {
     }
 
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.socket.close();
+        if self.listening.load(Ordering::Relaxed) {
+            let _ = self.disable_recv_msg();
+            self.listening.store(false, Ordering::Relaxed);
+        }
+        self.cmd_socket.close();
         let output = Command::new(self.exe.to_str().unwrap())
             .creation_flags(0x08000000)
             .args(["stop"])
@@ -129,14 +140,14 @@ impl WeChat {
             }
         };
         let msg = nng::Message::from(&buf[..]);
-        let _ = match self.socket.send(msg) {
+        let _ = match self.cmd_socket.send(msg) {
             Ok(()) => {}
             Err(e) => {
                 error!("消息发送失败: {:?}, {}", e.0, e.1);
                 return Err("消息发送失败".into());
             }
         };
-        let mut msg = match self.socket.recv() {
+        let mut msg = match self.cmd_socket.recv() {
             Ok(msg) => msg,
             Err(e) => {
                 error!("消息接收失败: {}", e);
@@ -293,6 +304,104 @@ impl WeChat {
             }
             _ => {
                 return Err("获取数据表失败".into());
+            }
+        };
+    }
+
+    pub fn enable_recv_msg(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+        fn listening_msg(wechat: &mut WeChat) {
+            while wechat.listening.load(Ordering::Relaxed) {
+                match wechat.msg_socket.as_ref().unwrap().recv() {
+                    Ok(buf) => {
+                        let rsp = match wcf::Response::decode(buf.as_slice()) {
+                            Ok(rsp) => rsp,
+                            Err(e) => {
+                                warn!("消息解码失败: {}", e);
+                                break;
+                            }
+                        };
+                        if let Some(wcf::response::Msg::Wxmsg(msg)) = rsp.msg {
+                            // TODO: 转发消息
+                            info!("接收到消息: {:?}", msg);
+                        } else {
+                            warn!("获取消息失败: {:?}", rsp.msg);
+                            break;
+                        }
+                    }
+                    Err(nng::Error::TimedOut) => {
+                        // 如果是超时错误，忽略它并继续尝试接收消息
+                        debug!("消息接收超时，继续等待...");
+                        continue;
+                    }
+                    Err(e) => {
+                        // 对于其他类型的错误，记录警告并返回错误
+                        warn!("消息接收失败: {}", e);
+                        break;
+                    }
+                }
+            }
+            let _ = wechat.disable_recv_msg().unwrap();
+        }
+
+        if self.listening.load(Ordering::Relaxed) {
+            warn!("已经启用消息接收");
+            return Ok(true);
+        }
+
+        let req = wcf::Request {
+            func: wcf::Functions::FuncEnableRecvTxt.into(),
+            msg: Some(wcf::request::Msg::Flag(true)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("启用消息接收命令发送失败: {}", e);
+                return Err("启用消息接收命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                if status == 0 {
+                    self.msg_socket = Some(WeChat::connect(MSG_URL).unwrap());
+                    self.listening.store(true, Ordering::Relaxed);
+                    let mut wc = self.clone();
+                    thread::spawn(move || listening_msg(&mut wc));
+                }
+                return Ok(true);
+            }
+            _ => {
+                return Err("启用消息接收失败".into());
+            }
+        };
+    }
+
+    pub fn disable_recv_msg(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+        if !self.listening.load(Ordering::Relaxed) {
+            return Ok(true);
+        }
+
+        let req = wcf::Request {
+            func: wcf::Functions::FuncDisableRecvTxt.into(),
+            msg: None,
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("停止消息接收命令发送失败: {}", e);
+                return Err("停止消息接收命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(_status) => {
+                // TODO: 处理状态码
+                self.msg_socket.clone().unwrap().close();
+                self.listening.store(false, Ordering::Relaxed);
+                return Ok(true);
+            }
+            _ => {
+                return Err("停止消息接收失败".into());
             }
         };
     }
