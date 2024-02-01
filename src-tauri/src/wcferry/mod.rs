@@ -18,9 +18,7 @@ pub mod wcf {
 
 #[derive(Clone, Debug)]
 pub struct WeChat {
-    pub url: String,
     pub exe: PathBuf,
-    pub debug: bool,
     pub listening: Arc<AtomicBool>,
     pub cmd_socket: nng::Socket,
     pub msg_socket: Option<nng::Socket>,
@@ -28,21 +26,19 @@ pub struct WeChat {
 
 impl Default for WeChat {
     fn default() -> Self {
-        WeChat::new(false)
+        WeChat::new(false, "".to_string())
     }
 }
 
 impl WeChat {
-    pub fn new(debug: bool) -> Self {
+    pub fn new(debug: bool, cburl: String) -> Self {
         let exe = env::current_dir()
             .unwrap()
             .join("src\\wcferry\\lib\\wcf.exe");
         let _ = WeChat::start(exe.clone(), debug);
         let cmd_socket = WeChat::connect(&CMD_URL).unwrap();
-        let wc = WeChat {
-            url: String::from(CMD_URL),
+        let mut wc = WeChat {
             exe: exe,
-            debug,
             listening: Arc::new(AtomicBool::new(false)),
             cmd_socket,
             msg_socket: None,
@@ -51,6 +47,7 @@ impl WeChat {
         while !wc.clone().is_login().unwrap() {
             sleep(Duration::from_secs(1));
         }
+        let _ = wc.enable_recv_msg(cburl);
         wc
     }
 
@@ -123,7 +120,7 @@ impl WeChat {
                 return Err("服务停止失败".into());
             }
         };
-        debug!("服务已停止: {}", self.url);
+        debug!("服务已停止: {}", CMD_URL);
         Ok(())
     }
 
@@ -308,8 +305,8 @@ impl WeChat {
         };
     }
 
-    pub fn enable_recv_msg(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
-        fn listening_msg(wechat: &mut WeChat) {
+    pub fn enable_recv_msg(&mut self, cburl: String) -> Result<bool, Box<dyn std::error::Error>> {
+        fn listening_msg(wechat: &mut WeChat, cburl: String) {
             while wechat.listening.load(Ordering::Relaxed) {
                 match wechat.msg_socket.as_ref().unwrap().recv() {
                     Ok(buf) => {
@@ -321,8 +318,11 @@ impl WeChat {
                             }
                         };
                         if let Some(wcf::response::Msg::Wxmsg(msg)) = rsp.msg {
-                            // TODO: 转发消息
-                            info!("接收到消息: {:?}", msg);
+                            if cburl.is_empty() {
+                                info!("接收到消息: {:?}", msg); // 没有设置回调，消息打印在日志里
+                            } else {
+                                info!("TODO: 转发消息到 {}\n{:?}", cburl, msg); // TODO: 转发消息
+                            }
                         } else {
                             warn!("获取消息失败: {:?}", rsp.msg);
                             break;
@@ -366,7 +366,7 @@ impl WeChat {
                     self.msg_socket = Some(WeChat::connect(MSG_URL).unwrap());
                     self.listening.store(true, Ordering::Relaxed);
                     let mut wc = self.clone();
-                    thread::spawn(move || listening_msg(&mut wc));
+                    thread::spawn(move || listening_msg(&mut wc, cburl));
                 }
                 return Ok(true);
             }
