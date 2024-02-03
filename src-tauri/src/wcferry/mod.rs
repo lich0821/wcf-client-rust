@@ -1,13 +1,17 @@
 use log::{debug, error, info, warn};
 use nng::options::{Options, RecvTimeout};
 use prost::Message;
+use reqwest::blocking::Client;
 use std::os::windows::process::CommandExt;
+use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use std::thread::{self, sleep};
 use std::{env, path::PathBuf, process::Command, time::Duration, vec};
+
+use crate::wcferry::wcf::WxMsg;
 
 const CMD_URL: &'static str = "tcp://127.0.0.1:10086";
 const MSG_URL: &'static str = "tcp://127.0.0.1:10087";
@@ -306,7 +310,7 @@ impl WeChat {
     }
 
     pub fn enable_recv_msg(&mut self, cburl: String) -> Result<bool, Box<dyn std::error::Error>> {
-        fn listening_msg(wechat: &mut WeChat, cburl: String) {
+        fn listening_msg(wechat: &mut WeChat, tx: SyncSender<wcf::WxMsg>) {
             while wechat.listening.load(Ordering::Relaxed) {
                 match wechat.msg_socket.as_ref().unwrap().recv() {
                     Ok(buf) => {
@@ -318,10 +322,13 @@ impl WeChat {
                             }
                         };
                         if let Some(wcf::response::Msg::Wxmsg(msg)) = rsp.msg {
-                            if cburl.is_empty() {
-                                info!("接收到消息: {:?}", msg); // 没有设置回调，消息打印在日志里
-                            } else {
-                                info!("TODO: 转发消息到 {}\n{:?}", cburl, msg); // TODO: 转发消息
+                            match tx.send(msg) {
+                                Ok(_) => {
+                                    debug!("消息入队成功");
+                                }
+                                Err(e) => {
+                                    error!("消息入队失败: {}", e);
+                                }
                             }
                         } else {
                             warn!("获取消息失败: {:?}", rsp.msg);
@@ -341,6 +348,36 @@ impl WeChat {
                 }
             }
             let _ = wechat.disable_recv_msg().unwrap();
+        }
+
+        fn forward_msg(wechat: &mut WeChat, cburl: String, rx: Receiver<WxMsg>) {
+            let mut cb_client = None;
+            if !cburl.is_empty() {
+                cb_client = Some(Client::new());
+            }
+            while wechat.listening.load(Ordering::Relaxed) {
+                match rx.recv() {
+                    Ok(msg) => {
+                        if let Some(client) = &cb_client {
+                            match client.post(cburl.clone()).json(&msg).send() {
+                                Ok(rsp) => {
+                                    if !rsp.status().is_success() {
+                                        error!("转发消息失败，状态码: {}", rsp.status().as_str());
+                                    }
+                                }
+                                Err(e) => {
+                                    error!("转发消息失败：{}", e);
+                                }
+                            }
+                        } else {
+                            info!("收到消息:\n{:?}", msg);
+                        };
+                    }
+                    Err(e) => {
+                        error!("消息出队失败: {}", e);
+                    }
+                }
+            }
         }
 
         if self.listening.load(Ordering::Relaxed) {
@@ -363,10 +400,13 @@ impl WeChat {
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
                 if status == 0 {
+                    let (tx, rx) = mpsc::sync_channel::<wcf::WxMsg>(100);
                     self.msg_socket = Some(WeChat::connect(MSG_URL).unwrap());
                     self.listening.store(true, Ordering::Relaxed);
-                    let mut wc = self.clone();
-                    thread::spawn(move || listening_msg(&mut wc, cburl));
+                    let mut wc1 = self.clone();
+                    let mut wc2 = self.clone();
+                    thread::spawn(move || listening_msg(&mut wc1, tx));
+                    thread::spawn(move || forward_msg(&mut wc2, cburl, rx));
                 }
                 return Ok(true);
             }

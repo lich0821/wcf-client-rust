@@ -1,6 +1,6 @@
 [package]
 name = "wcfrust"
-version = "0.1.0"
+version = "39.112.0"
 description = "A HTTP (Rust) client for WeChatFerry"
 authors = ["Changhua"]
 license = "MIT"
@@ -24,6 +24,7 @@ prost = "0.11.6"
 env_logger = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
 tauri = { version = "1.5", features = [ "system-tray", "shell-open"] }
 
 [features]
