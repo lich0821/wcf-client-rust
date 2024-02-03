@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
-use utoipa::{OpenApi, ToSchema};
+use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::Config;
 use warp::reply::Json;
 use warp::{
@@ -33,6 +33,12 @@ where
     data: Option<T>,
 }
 
+#[derive(Debug, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct Id {
+    id: u64,
+}
+
 pub fn get_routes(
     wechat: Arc<Mutex<WeChat>>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
@@ -40,7 +46,7 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types),
+        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, refresh_pyq),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact, DbNames, DbTables, DbTable, MsgTypes
         )),
@@ -115,6 +121,15 @@ pub fn get_routes(
             .and_then(get_msg_types)
     }
 
+    fn pyq(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("pyq")
+            .and(warp::query::<Id>())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(refresh_pyq)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -124,6 +139,7 @@ pub fn get_routes(
         .or(dbs(wechat.clone()))
         .or(tables(wechat.clone()))
         .or(msgtypes(wechat.clone()))
+        .or(pyq(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -326,6 +342,32 @@ pub async fn get_msg_types(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
             status: 0,
             error: None,
             data: Some(types),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    get,
+    tag = "WCF",
+    path = "/pyq",
+    params(("id"=u64, Query, description = "开始 id，0 为最新页")),
+    responses(
+        (status = 200, body = ApiResponseBool, description = "刷新朋友圈（从消息回调中查看）")
+    )
+)]
+pub async fn refresh_pyq(query: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().refresh_pyq(query.id) {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,

@@ -468,4 +468,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn refresh_pyq(self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncRefreshPyq.into(),
+            msg: Some(wcf::request::Msg::Ui64(id)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("刷新朋友圈命令发送失败: {}", e);
+                return Err("刷新朋友圈命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status == 1);
+            }
+            _ => {
+                return Err("刷新朋友圈失败".into());
+            }
+        };
+    }
 }
