@@ -1,4 +1,3 @@
-use log::info;
 use serde::Serialize;
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
@@ -13,7 +12,7 @@ use warp::{
 };
 
 use crate::wcferry::{
-    wcf::{DbNames, DbTable, DbTables, RpcContact, RpcContacts, UserInfo},
+    wcf::{DbNames, DbTable, DbTables, MsgTypes, RpcContact, RpcContacts, UserInfo},
     WeChat,
 };
 
@@ -23,6 +22,7 @@ use crate::wcferry::{
     ApiResponseUserInfo = ApiResponse<UserInfo>,
     ApiResponseContacts = ApiResponse<RpcContacts>,
     ApiResponseDbNames = ApiResponse<DbNames>,
+    ApiResponseMsgTypes = ApiResponse<MsgTypes>,
     ApiResponseDbTables = ApiResponse<DbTables>)]
 struct ApiResponse<T>
 where
@@ -40,9 +40,9 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables),
+        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact, DbNames, DbTables, DbTable
+            ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact, DbNames, DbTables, DbTable, MsgTypes
         )),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
@@ -107,6 +107,14 @@ pub fn get_routes(
             .and_then(get_tables)
     }
 
+    fn msgtypes(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("msg-types")
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(get_msg_types)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -115,6 +123,7 @@ pub fn get_routes(
         .or(contacts(wechat.clone()))
         .or(dbs(wechat.clone()))
         .or(tables(wechat.clone()))
+        .or(msgtypes(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -286,13 +295,37 @@ pub async fn get_dbs(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     )
 )]
 pub async fn get_tables(db: String, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
-    info!("db: {}", db);
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().get_tables(db) {
         Ok(tables) => ApiResponse {
             status: 0,
             error: None,
             data: Some(tables),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    get,
+    tag = "WCF",
+    path = "/msg-types",
+    responses(
+        (status = 200, body = ApiResponseMsgTypes, description = "返回消息类型")
+    )
+)]
+pub async fn get_msg_types(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().get_msg_types() {
+        Ok(types) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(types),
         },
         Err(error) => ApiResponse {
             status: 1,

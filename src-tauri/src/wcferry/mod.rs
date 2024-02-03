@@ -445,4 +445,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn get_msg_types(self) -> Result<wcf::MsgTypes, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetMsgTypes.into(),
+            msg: None,
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("获取消息类型命令发送失败: {}", e);
+                return Err("获取消息类型命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Types(types) => {
+                return Ok(types);
+            }
+            _ => {
+                return Err("获取消息类型失败".into());
+            }
+        };
+    }
 }
