@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use tauri::command;
 use tauri::Manager;
 use tauri::SystemTray;
-use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem};
+use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
 
 mod endpoints;
 mod http_server;
@@ -76,10 +76,21 @@ async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<()
     Ok(())
 }
 
+fn cleanup(state: tauri::State<'_, Arc<Mutex<AppState>>>) {
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+    rt.block_on(async {
+        if let Err(e) = stop_server(state).await {
+            eprintln!("Failed to stop server: {}", e);
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    });
+}
+
 fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemTrayEvent) {
     match event {
         tauri::SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "quit" => {
+                cleanup(app_handle.state());
                 std::process::exit(0);
             }
             "hide" => {
@@ -127,6 +138,14 @@ fn main() {
                 .expect("Failed to initialize logger");
 
             Ok(())
+        })
+        .on_window_event(move |event| match event.event() {
+            WindowEvent::CloseRequested { api, .. } => {
+                api.prevent_close();
+                cleanup(event.window().app_handle().clone().state());
+                event.window().close().unwrap();
+            }
+            _ => {}
         })
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
