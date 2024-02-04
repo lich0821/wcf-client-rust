@@ -491,4 +491,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn send_text(self, text: wcf::TextMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncSendTxt.into(),
+            msg: Some(wcf::request::Msg::Txt(text)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("发送文本消息命令发送失败: {}", e);
+                return Err("发送文本消息命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status == 0);
+            }
+            _ => {
+                return Err("发送文本消息失败".into());
+            }
+        };
+    }
 }
