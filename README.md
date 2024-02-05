@@ -1,11 +1,17 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
 ## 快速开始
+## 快速开始
+> 如果跑过机器人，先将机器人停止，然后退出微信，再开始，以避免奇奇怪怪的问题。
+
 * 下载 [最新版安装包](https://github.com/lich0821/wcf-client-rust/releases/latest)
 * 安装
 * 运行
 * 启动
 
 ## 版本更新
+### v39.0.12.1（2024.02.06）
+* 发送图片消息
+
 ### v39.0.12.0 (2024.02.05)
 * 检查登录状态
 * 查询登录账号 wxid
@@ -17,7 +23,6 @@
 * 接收消息
 * 刷新朋友圈
 * 发送文本消息
-* 发送图片消息
 
 |![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg)|![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg)|
 |:-:|:-:|
