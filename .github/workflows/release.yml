@@ -1,0 +1,85 @@
+name: Create Release Draft
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+
+jobs:
+  windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "22.2"
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version ^1.0.0
+
+      - name: Build
+        run: cargo tauri build
+        working-directory: ./src-tauri
+
+      - name: Create output directory
+        run: mkdir output
+
+      - name: Copy files to output
+        run: cp src-tauri\\target\\release\\bundle\\nsis\\*.exe output\\
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows
+          path: output\\*.exe
+
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: windows
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Determine Release Info
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          VERSION=${GITHUB_REF##*/}
+          MAJOR=${VERSION%%.*}
+          MINOR=${VERSION%.*}
+          MINOR=${MINOR#*.}
+          PATCH=${VERSION##*.}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "WINDOWS_DIR=WeChatFerry_${MAJOR}.${MINOR}.${PATCH}_windows_x64" >> $GITHUB_ENV
+          echo "INNER_DIR=WeChatFerry-$VERSION" >> $GITHUB_ENV
+
+      - name: Create Windows Directory
+        run: mkdir -p ${{ env.WINDOWS_DIR }}
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: windows
+          path: ${{ env.WINDOWS_DIR }}
+
+      - name: Create Windows Archive
+        run: zip -r ${{ env.WINDOWS_DIR }}.zip ${{ env.WINDOWS_DIR }}
+
+      - name: Upload Windows binary
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.WINDOWS_DIR }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
