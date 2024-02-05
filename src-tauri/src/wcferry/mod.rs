@@ -514,4 +514,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn send_image(self, img: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncSendImg.into(),
+            msg: Some(wcf::request::Msg::File(img)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("发送图片消息命令发送失败: {}", e);
+                return Err("发送图片消息命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status == 0);
+            }
+            _ => {
+                return Err("发送图片消息失败".into());
+            }
+        };
+    }
 }

@@ -12,7 +12,9 @@ use warp::{
 };
 
 use crate::wcferry::{
-    wcf::{DbNames, DbTable, DbTables, MsgTypes, RpcContact, RpcContacts, TextMsg, UserInfo},
+    wcf::{
+        DbNames, DbTable, DbTables, MsgTypes, PathMsg, RpcContact, RpcContacts, TextMsg, UserInfo,
+    },
     WeChat,
 };
 
@@ -46,9 +48,9 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, refresh_pyq, send_text),
+        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, refresh_pyq, send_text, send_image),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact, DbNames, DbTables, DbTable, MsgTypes, TextMsg
+            ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact, DbNames, DbTables, DbTable, MsgTypes, TextMsg, PathMsg
         )),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
@@ -140,6 +142,16 @@ pub fn get_routes(
             .and_then(send_text)
     }
 
+    fn sendimage(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("image")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(send_image)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -151,6 +163,7 @@ pub fn get_routes(
         .or(msgtypes(wechat.clone()))
         .or(pyq(wechat.clone()))
         .or(sendtext(wechat.clone()))
+        .or(sendimage(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -401,6 +414,32 @@ pub async fn refresh_pyq(query: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
 pub async fn send_text(text: TextMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().send_text(text) {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/image",
+    request_body = PathMsg,
+    responses(
+        (status = 200, body = ApiResponseBool, description = "发送图片消息")
+    )
+)]
+pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().send_image(image) {
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
