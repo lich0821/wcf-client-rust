@@ -3,10 +3,10 @@
 use chrono::Local;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use std::sync::{Arc, Mutex};
-use tauri::command;
-use tauri::Manager;
-use tauri::SystemTray;
-use tauri::{CustomMenuItem, SystemTrayMenu, SystemTrayMenuItem, WindowEvent};
+use tauri::{
+    command, AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayMenu, SystemTrayMenuItem,
+    WindowEvent,
+};
 
 mod endpoints;
 mod http_server;
@@ -115,6 +115,39 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
     }
 }
 
+fn init_window(window: tauri::Window) {
+    window.hide().unwrap();
+    if let Ok(Some(monitor)) = window.primary_monitor() {
+        let monitor_size = monitor.size();
+        if let Ok(window_size) = window.outer_size() {
+            let x = (monitor_size.width as i32 - window_size.width as i32) / 2;
+            let y = (monitor_size.height as i32 - window_size.height as i32) / 2;
+            window
+                .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                    x: x.into(),
+                    y: y.into(),
+                }))
+                .unwrap();
+        } else {
+            let x = (monitor_size.width as i32 - 640) / 2;
+            let y = (monitor_size.height as i32 - 320) / 2;
+            window
+                .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                    x: x.into(),
+                    y: y.into(),
+                }))
+                .unwrap();
+        }
+    }
+    window.show().unwrap();
+}
+
+fn init_log(handle: AppHandle) {
+    log::set_boxed_logger(Box::new(FrontendLogger { app_handle: handle }))
+        .map(|()| log::set_max_level(LevelFilter::Info))
+        .expect("Failed to initialize logger");
+}
+
 fn main() {
     let show = CustomMenuItem::new("show".to_string(), "显示").disabled();
     let hide = CustomMenuItem::new("hide".to_string(), "隐藏");
@@ -130,13 +163,8 @@ fn main() {
 
     let app = tauri::Builder::default()
         .setup(|app| {
-            let app_handle = app.app_handle();
-
-            // 初始化日志记录器
-            log::set_boxed_logger(Box::new(FrontendLogger { app_handle }))
-                .map(|()| log::set_max_level(LevelFilter::Info))
-                .expect("Failed to initialize logger");
-
+            init_window(app.get_window("main").unwrap());
+            init_log(app.app_handle());
             Ok(())
         })
         .on_window_event(move |event| match event.event() {
