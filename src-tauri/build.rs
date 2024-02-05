@@ -19,6 +19,10 @@ fn main() {
             ".wcf.TextMsg.aters",
             "#[schema(example = \"wxid_88888888888888\")]",
         )
+        .field_attribute(
+            ".wcf.PathMsg.path",
+            "#[schema(example = \"C:/图片/文件/等路径/必须存在否则失败.jpeg\")]",
+        )
         .compile_protos(&["src/wcferry/lib/wcf.proto"], &["."])
         .unwrap();
     tauri_build::build()
