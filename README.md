@@ -1,11 +1,31 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
+一个基于 WeChatFerry 的 HTTP 客户端。
+
+|[📺 视频教程](https://mp.weixin.qq.com/s/APdjGyZ2hllXxyG_sNCfXQ)|[🙋 FAQ](https://mp.weixin.qq.com/s/WOw26mKJG8Nq55cT6iG-yA)|
+|:-:|:-:|
+
+<details><summary><font color="#FF0000" size="5">免责声明【必读】</font></summary>
+
+本工具仅供学习和技术研究使用，不得用于任何商业或非法行为，否则后果自负。
+
+本工具的作者不对本工具的安全性、完整性、可靠性、有效性、正确性或适用性做任何明示或暗示的保证，也不对本工具的使用或滥用造成的任何直接或间接的损失、责任、索赔、要求或诉讼承担任何责任。
+
+本工具的作者保留随时修改、更新、删除或终止本工具的权利，无需事先通知或承担任何义务。
+
+本工具的使用者应遵守相关法律法规，尊重微信的版权和隐私，不得侵犯微信或其他第三方的合法权益，不得从事任何违法或不道德的行为。
+
+本工具的使用者在下载、安装、运行或使用本工具时，即表示已阅读并同意本免责声明。如有异议，请立即停止使用本工具，并删除所有相关文件。
+
+</details>
+
 ## 快速开始
 >ℹ️ 如果跑过机器人，先将机器人停止，然后退出微信，再开始，以避免奇奇怪怪的问题。
 
+* 安装微信 `3.9.2.23`（[这里能找到](https://github.com/lich0821/WeChatFerry/releases/latest)）
 * 下载 [最新版安装包](https://github.com/lich0821/wcf-client-rust/releases/latest)
 * 安装
 * 运行
-* 启动
+* 启动，按日志提示操作
 
 ## 版本更新
 ### v39.0.12.1（2024.02.06）
@@ -33,6 +53,11 @@
 访问 Rust 官方网站，下载并运行 Rustup 的安装程序。
 
 在安装过程中，选择默认配置即可，这将安装最新稳定版本的 Rust，包括 `rustc` 、 `cargo` 和 `rustup` 自身。
+
+#### 安装 tauri-cli
+```sh
+cargo install tauri-cli
+```
 
 #### 安装 Protoc
 下载适用于 Windows 的 `protoc` 二进制文件。
