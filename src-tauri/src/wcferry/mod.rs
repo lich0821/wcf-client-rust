@@ -629,4 +629,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn save_audio(self, am: wcf::AudioMsg) -> Result<String, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncGetAudioMsg.into(),
+            msg: Some(wcf::request::Msg::Am(am)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("保存语音命令发送失败: {}", e);
+                return Err("保存语音命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Str(path) => {
+                return Ok(path);
+            }
+            _ => {
+                return Err("保存语音失败".into());
+            }
+        };
+    }
 }

@@ -13,8 +13,8 @@ use warp::{
 
 use crate::wcferry::{
     wcf::{
-        DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText, RpcContact,
-        RpcContacts, TextMsg, UserInfo,
+        AudioMsg, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText,
+        RpcContact, RpcContacts, TextMsg, UserInfo,
     },
     WeChat,
 };
@@ -49,11 +49,11 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, refresh_pyq,
-            send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg),
+        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
+            refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg, PathMsg,
-            RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
+            ApiResponse<bool>, ApiResponse<String>, AudioMsg, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg,
+            PathMsg, RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
         )),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
@@ -195,6 +195,16 @@ pub fn get_routes(
             .and_then(forward_msg)
     }
 
+    fn saveaudio(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("audio")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(save_audio)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -211,6 +221,7 @@ pub fn get_routes(
         .or(sendrichtext(wechat.clone()))
         .or(sendpatmsg(wechat.clone()))
         .or(forwardmsg(wechat.clone()))
+        .or(saveaudio(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -595,6 +606,32 @@ pub async fn forward_msg(msg: ForwardMsg, wechat: Arc<Mutex<WeChat>>) -> Result<
             status: 0,
             error: None,
             data: Some(status),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/audio",
+    request_body = AudioMsg,
+    responses(
+        (status = 200, body = ApiResponseString, description = "保存语音消息")
+    )
+)]
+pub async fn save_audio(msg: AudioMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().save_audio(msg) {
+        Ok(path) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(path),
         },
         Err(error) => ApiResponse {
             status: 1,
