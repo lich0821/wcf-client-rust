@@ -1,8 +1,7 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
 一个基于 WeChatFerry 的 HTTP 客户端。
 
-|[📺 视频教程](https://mp.weixin.qq.com/s/APdjGyZ2hllXxyG_sNCfXQ)|[🙋 FAQ](https://mp.weixin.qq.com/s/WOw26mKJG8Nq55cT6iG-yA)|
-|:-:|:-:|
+[🙋 FAQ](https://mp.weixin.qq.com/s/WOw26mKJG8Nq55cT6iG-yA)
 
 <details><summary><font color="#FF0000" size="5">免责声明【必读】</font></summary>
 
@@ -18,6 +17,30 @@
 
 </details>
 
+<details><summary>点击查看功能清单</summary>
+
+* 检查登录状态
+* 查询登录账号 wxid
+* 获取登录账号信息
+* 获取通信录
+* 列出所有可查询数据库
+* 查询数据库的表信息
+* 查询消息类型映射表
+* 接收消息
+* 刷新朋友圈
+* 发送文本消息
+* 发送图片消息
+* 发送文件消息
+* 发送卡片消息
+* 发送拍一拍消息
+* 转发消息
+* 保存语音
+* 下载图片
+* 某功能
+* 查询 SQL
+
+</details>
+
 ## 快速开始
 >ℹ️ 如果跑过机器人，先将机器人停止，然后退出微信，再开始，以避免奇奇怪怪的问题。
 
@@ -28,6 +51,18 @@
 * 启动，按日志提示操作
 
 ## 版本更新
+### v39.0.12.2（2024.02.08）
+* 发送文件消息
+* 发送卡片消息
+* 发送拍一拍消息
+* 转发消息
+* 保存语音
+* 下载图片
+* 某功能
+* 查询 SQL
+
+<details><summary>点击查看更多</summary>
+
 ### v39.0.12.1（2024.02.06）
 * 发送图片消息
 
@@ -42,6 +77,8 @@
 * 接收消息
 * 刷新朋友圈
 * 发送文本消息
+
+</details>
 
 |![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg)|![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg)|
 |:-:|:-:|
