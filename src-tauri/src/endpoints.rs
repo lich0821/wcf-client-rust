@@ -48,7 +48,7 @@ pub fn get_routes(
 
     #[derive(OpenApi)]
     #[openapi(
-        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, refresh_pyq, send_text, send_image),
+        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, refresh_pyq, send_text, send_image, send_file),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, UserInfo, RpcContacts, RpcContact, DbNames, DbTables, DbTable, MsgTypes, TextMsg, PathMsg
         )),
@@ -152,6 +152,16 @@ pub fn get_routes(
             .and_then(send_image)
     }
 
+    fn sendfile(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("file")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(send_file)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -164,6 +174,7 @@ pub fn get_routes(
         .or(pyq(wechat.clone()))
         .or(sendtext(wechat.clone()))
         .or(sendimage(wechat.clone()))
+        .or(sendfile(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -278,7 +289,7 @@ pub async fn get_user_info(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
     tag = "WCF",
     path = "/contacts",
     responses(
-        (status = 200, body = ApiResponseContacts, description = "返回登录账户用户信息")
+        (status = 200, body = ApiResponseContacts, description = "查询所有联系人，包括服务号、公众号、群聊等")
     )
 )]
 pub async fn get_contacts(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
@@ -303,7 +314,7 @@ pub async fn get_contacts(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible
     tag = "WCF",
     path = "/dbs",
     responses(
-        (status = 200, body = ApiResponseDbNames, description = "返回登录账户用户信息")
+        (status = 200, body = ApiResponseDbNames, description = "查询所有可用数据库")
     )
 )]
 pub async fn get_dbs(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
@@ -440,6 +451,32 @@ pub async fn send_text(text: TextMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
 pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().send_image(image) {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/file",
+    request_body = PathMsg,
+    responses(
+        (status = 200, body = ApiResponseBool, description = "发送文件消息")
+    )
+)]
+pub async fn send_file(file: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().send_file(file) {
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
