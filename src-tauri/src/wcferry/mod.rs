@@ -698,4 +698,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn recv_transfer(self, msg: wcf::Transfer) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncRecvTransfer.into(),
+            msg: Some(wcf::request::Msg::Tf(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("接收转账命令发送失败: {}", e);
+                return Err("接收转账命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("接收转账失败".into());
+            }
+        };
+    }
 }
