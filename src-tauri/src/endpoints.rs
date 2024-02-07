@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::Duration;
 use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::Config;
 use warp::reply::Json;
@@ -13,8 +15,8 @@ use warp::{
 
 use crate::wcferry::{
     wcf::{
-        AudioMsg, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText,
-        RpcContact, RpcContacts, TextMsg, UserInfo,
+        AttachMsg, AudioMsg, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg, PathMsg,
+        RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
     },
     WeChat,
 };
@@ -42,6 +44,20 @@ pub struct Id {
     id: u64,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct Image {
+    /// 消息里的 id
+    id: u64,
+    /// 消息里的 extra
+    extra: String,
+    /// 存放目录，不存在则失败；没权限，亦失败
+    #[schema(example = "C:/")]
+    dir: String,
+    /// 超时时间，单位秒
+    #[schema(example = 10)]
+    timeout: u8,
+}
+
 pub fn get_routes(
     wechat: Arc<Mutex<WeChat>>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
@@ -50,10 +66,10 @@ pub fn get_routes(
     #[derive(OpenApi)]
     #[openapi(
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
-            refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg),
+            refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, AudioMsg, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg,
-            PathMsg, RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
+            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbTable, DbTables, ForwardMsg,
+            MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
         )),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
@@ -205,6 +221,16 @@ pub fn get_routes(
             .and_then(save_audio)
     }
 
+    fn saveimage(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("save-image")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(save_image)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -222,6 +248,7 @@ pub fn get_routes(
         .or(sendpatmsg(wechat.clone()))
         .or(forwardmsg(wechat.clone()))
         .or(saveaudio(wechat.clone()))
+        .or(saveimage(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -640,4 +667,65 @@ pub async fn save_audio(msg: AudioMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Jso
         },
     };
     Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/save-image",
+    request_body = Image,
+    responses(
+        (status = 200, body = ApiResponseString, description = "保存图片")
+    )
+)]
+pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wc = wechat.lock().unwrap();
+    let handle_error = |error_message: &str| -> Result<Json, Infallible> {
+        Ok(warp::reply::json(&ApiResponse::<String> {
+            status: 1,
+            error: Some(error_message.to_string()),
+            data: None,
+        }))
+    };
+
+    let att = AttachMsg {
+        id: msg.id,
+        thumb: "".to_string(),
+        extra: msg.extra.clone(),
+    };
+
+    let status = match wc.clone().download_attach(att) {
+        Ok(status) => status,
+        Err(error) => return handle_error(&error.to_string()),
+    };
+
+    if status != 0 {
+        return handle_error("下载失败");
+    }
+
+    let mut counter = 0;
+    loop {
+        if counter >= msg.timeout {
+            break;
+        }
+        match wc.clone().decrypt_image(wcf::DecPath {
+            src: msg.extra.clone(),
+            dst: msg.dir.clone(),
+        }) {
+            Ok(path) => {
+                if path.is_empty() {
+                    counter += 1;
+                    sleep(Duration::from_secs(1));
+                    continue;
+                }
+                return Ok(warp::reply::json(&ApiResponse {
+                    status: 0,
+                    error: None,
+                    data: Some(path),
+                }));
+            }
+            Err(error) => return handle_error(&error.to_string()),
+        };
+    }
+    return handle_error("下载超时");
 }

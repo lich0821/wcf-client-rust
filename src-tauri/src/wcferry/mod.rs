@@ -652,4 +652,50 @@ impl WeChat {
             }
         };
     }
+
+    pub fn decrypt_image(self, msg: wcf::DecPath) -> Result<String, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncDecryptImage.into(),
+            msg: Some(wcf::request::Msg::Dec(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("解密图片命令发送失败: {}", e);
+                return Err("解密图片命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Str(path) => {
+                return Ok(path);
+            }
+            _ => {
+                return Err("解密图片失败".into());
+            }
+        };
+    }
+
+    pub fn download_attach(self, msg: wcf::AttachMsg) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncDownloadAttach.into(),
+            msg: Some(wcf::request::Msg::Att(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("下载附件命令发送失败: {}", e);
+                return Err("下载附件命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("下载附件失败".into());
+            }
+        };
+    }
 }
