@@ -15,8 +15,8 @@ use warp::{
 
 use crate::wcferry::{
     wcf::{
-        AttachMsg, AudioMsg, DbNames, DbTable, DbTables, ForwardMsg, MsgTypes, PatMsg, PathMsg,
-        RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
+        AttachMsg, AudioMsg, DbNames, DbTable, DbTables, DecPath, ForwardMsg, MsgTypes, PatMsg,
+        PathMsg, RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
     },
     WeChat,
 };
@@ -68,8 +68,8 @@ pub fn get_routes(
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
             refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbTable, DbTables, ForwardMsg,
-            MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
+            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbTable, DbTables, DecPath,
+            ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, UserInfo,
         )),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
@@ -708,7 +708,7 @@ pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
         if counter >= msg.timeout {
             break;
         }
-        match wc.clone().decrypt_image(wcf::DecPath {
+        match wc.clone().decrypt_image(DecPath {
             src: msg.extra.clone(),
             dst: msg.dir.clone(),
         }) {
