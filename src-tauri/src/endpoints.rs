@@ -1,3 +1,5 @@
+use base64::encode;
+// use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
@@ -15,8 +17,8 @@ use warp::{
 
 use crate::wcferry::{
     wcf::{
-        AttachMsg, AudioMsg, DbNames, DbTable, DbTables, DecPath, ForwardMsg, MsgTypes, PatMsg,
-        PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
+        AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath, ForwardMsg, MsgTypes,
+        PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
     },
     WeChat,
 };
@@ -58,6 +60,30 @@ pub struct Image {
     timeout: u8,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum FieldContent {
+    Bytes(Vec<u8>),
+    Int(i64),
+    Float(f64),
+    Utf8String(String),
+    Base64String(String),
+    None,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NewField {
+    /// 字段名称
+    pub column: String,
+    /// 字段内容
+    pub content: FieldContent,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NewRow {
+    pub fields: Vec<NewField>,
+}
+
 pub fn get_routes(
     wechat: Arc<Mutex<WeChat>>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
@@ -67,9 +93,9 @@ pub fn get_routes(
     #[openapi(
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
             refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,
-            recv_transfer),
+            recv_transfer, query_sql),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbTable, DbTables, DecPath,
+            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath,
             ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
         )),
         tags((name = "WCF", description = "玩微信的接口"))
@@ -242,6 +268,16 @@ pub fn get_routes(
             .and_then(recv_transfer)
     }
 
+    fn querysql(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("sql")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(query_sql)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -261,6 +297,7 @@ pub fn get_routes(
         .or(saveaudio(wechat.clone()))
         .or(saveimage(wechat.clone()))
         .or(recvtransfer(wechat.clone()))
+        .or(querysql(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -759,6 +796,64 @@ pub async fn recv_transfer(msg: Transfer, wechat: Arc<Mutex<WeChat>>) -> Result<
             error: None,
             data: Some(status == 1),
         },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/sql",
+    request_body = DbQuery,
+    responses(
+        (status = 200, body = ApiResponseBool, description = "执行 SQL")
+    )
+)]
+pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().query_sql(msg) {
+        Ok(origin) => {
+            let rows = origin
+                .rows
+                .into_iter()
+                .map(|r| {
+                    let fields = r
+                        .fields
+                        .into_iter()
+                        .map(|f| {
+                            let utf8 = String::from_utf8(f.content.clone()).unwrap_or_default();
+                            let content: FieldContent = match f.r#type {
+                                1 => utf8
+                                    .parse::<i64>()
+                                    .map_or(FieldContent::None, FieldContent::Int),
+                                2 => utf8
+                                    .parse::<f64>()
+                                    .map_or(FieldContent::None, FieldContent::Float),
+                                3 => FieldContent::Utf8String(utf8),
+                                4 => FieldContent::Base64String(encode(&f.content.clone())),
+                                _ => FieldContent::None,
+                            };
+                            NewField {
+                                column: f.column,
+                                content,
+                            }
+                        })
+                        .collect::<Vec<_>>();
+                    NewRow { fields }
+                })
+                .collect::<Vec<_>>();
+
+            ApiResponse {
+                status: 0,
+                error: None,
+                data: Some(rows),
+            }
+        }
         Err(error) => ApiResponse {
             status: 1,
             error: Some(error.to_string()),

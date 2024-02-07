@@ -721,4 +721,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn query_sql(self, msg: wcf::DbQuery) -> Result<wcf::DbRows, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncExecDbQuery.into(),
+            msg: Some(wcf::request::Msg::Query(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("查询 SQL 命令发送失败: {}", e);
+                return Err("查询 SQL 命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Rows(rows) => {
+                return Ok(rows);
+            }
+            _ => {
+                return Err("查询 SQL 失败".into());
+            }
+        };
+    }
 }
