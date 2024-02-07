@@ -606,4 +606,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn forward_msg(self, msg: wcf::ForwardMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncForwardMsg.into(),
+            msg: Some(wcf::request::Msg::Fm(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("转发消息命令发送失败: {}", e);
+                return Err("转发消息命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status == 0);
+            }
+            _ => {
+                return Err("转发消息失败".into());
+            }
+        };
+    }
 }
