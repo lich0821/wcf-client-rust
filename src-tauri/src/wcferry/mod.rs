@@ -563,7 +563,7 @@ impl WeChat {
 
     pub fn send_rich_text(self, msg: wcf::RichText) -> Result<bool, Box<dyn std::error::Error>> {
         let req = wcf::Request {
-            func: wcf::Functions::FuncSendFile.into(),
+            func: wcf::Functions::FuncSendRichTxt.into(),
             msg: Some(wcf::request::Msg::Rt(msg)),
         };
         let rsp = match self.send_cmd(req) {
@@ -580,6 +580,29 @@ impl WeChat {
             }
             _ => {
                 return Err("发送卡片消息失败".into());
+            }
+        };
+    }
+
+    pub fn send_pat_msg(self, msg: wcf::PatMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncSendPatMsg.into(),
+            msg: Some(wcf::request::Msg::Pm(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("发送拍一拍消息命令发送失败: {}", e);
+                return Err("发送拍一拍消息命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status == 0);
+            }
+            _ => {
+                return Err("发送拍一拍消息失败".into());
             }
         };
     }
