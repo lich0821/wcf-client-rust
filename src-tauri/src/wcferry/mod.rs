@@ -770,4 +770,30 @@ impl WeChat {
             }
         };
     }
+
+    pub fn add_chatroom_member(
+        self,
+        msg: wcf::MemberMgmt,
+    ) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncExecDbQuery.into(),
+            msg: Some(wcf::request::Msg::M(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("添加群成员命令发送失败: {}", e);
+                return Err("添加群成员命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("添加群成员失败".into());
+            }
+        };
+    }
 }
