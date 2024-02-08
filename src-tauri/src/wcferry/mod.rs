@@ -750,7 +750,7 @@ impl WeChat {
         msg: wcf::Verification,
     ) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
-            func: wcf::Functions::FuncExecDbQuery.into(),
+            func: wcf::Functions::FuncAcceptFriend.into(),
             msg: Some(wcf::request::Msg::V(msg)),
         };
         let rsp = match self.send_cmd(req) {
@@ -776,7 +776,7 @@ impl WeChat {
         msg: wcf::MemberMgmt,
     ) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
-            func: wcf::Functions::FuncExecDbQuery.into(),
+            func: wcf::Functions::FuncAddRoomMembers.into(),
             msg: Some(wcf::request::Msg::M(msg)),
         };
         let rsp = match self.send_cmd(req) {
@@ -793,6 +793,32 @@ impl WeChat {
             }
             _ => {
                 return Err("添加群成员失败".into());
+            }
+        };
+    }
+
+    pub fn invite_chatroom_member(
+        self,
+        msg: wcf::MemberMgmt,
+    ) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncInvRoomMembers.into(),
+            msg: Some(wcf::request::Msg::M(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("邀请群成员命令发送失败: {}", e);
+                return Err("邀请群成员命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("邀请群成员失败".into());
             }
         };
     }
