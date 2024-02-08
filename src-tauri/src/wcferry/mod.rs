@@ -744,4 +744,30 @@ impl WeChat {
             }
         };
     }
+
+    pub fn accept_new_friend(
+        self,
+        msg: wcf::Verification,
+    ) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncExecDbQuery.into(),
+            msg: Some(wcf::request::Msg::V(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("通过好友申请命令发送失败: {}", e);
+                return Err("通过好友申请命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("通过好友申请失败".into());
+            }
+        };
+    }
 }

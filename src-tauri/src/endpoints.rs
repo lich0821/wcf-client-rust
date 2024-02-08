@@ -19,6 +19,7 @@ use crate::wcferry::{
     wcf::{
         AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath, ForwardMsg, MsgTypes,
         PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
+        Verification,
     },
     WeChat,
 };
@@ -93,10 +94,11 @@ pub fn get_routes(
     #[openapi(
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
             refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,
-            recv_transfer, query_sql),
+            recv_transfer, query_sql, accept_new_friend),
         components(schemas(
-            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath,
-            ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
+            ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
+            DecPath, ForwardMsg, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer,
+            UserInfo, Verification,
         )),
         tags((name = "WCF", description = "玩微信的接口"))
     )]
@@ -278,6 +280,16 @@ pub fn get_routes(
             .and_then(query_sql)
     }
 
+    fn acceptnewfriend(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("accept-new-friend")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(accept_new_friend)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -298,6 +310,7 @@ pub fn get_routes(
         .or(saveimage(wechat.clone()))
         .or(recvtransfer(wechat.clone()))
         .or(querysql(wechat.clone()))
+        .or(acceptnewfriend(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -854,6 +867,35 @@ pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json,
                 data: Some(rows),
             }
         }
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/accept-new-friend",
+    request_body = Verification,
+    responses(
+        (status = 200, body = ApiResponseBool, description = "通过好友申请")
+    )
+)]
+pub async fn accept_new_friend(
+    msg: Verification,
+    wechat: Arc<Mutex<WeChat>>,
+) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().accept_new_friend(msg) {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status == 1),
+        },
         Err(error) => ApiResponse {
             status: 1,
             error: Some(error.to_string()),
