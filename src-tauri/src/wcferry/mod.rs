@@ -822,4 +822,30 @@ impl WeChat {
             }
         };
     }
+
+    pub fn delete_chatroom_member(
+        self,
+        msg: wcf::MemberMgmt,
+    ) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncDelRoomMembers.into(),
+            msg: Some(wcf::request::Msg::M(msg)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("删除群成员命令发送失败: {}", e);
+                return Err("删除群成员命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("删除群成员失败".into());
+            }
+        };
+    }
 }

@@ -94,7 +94,8 @@ pub fn get_routes(
     #[openapi(
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
             refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,
-            recv_transfer, query_sql, accept_new_friend, add_chatroom_member, invite_chatroom_member),
+            recv_transfer, query_sql, accept_new_friend, add_chatroom_member, invite_chatroom_member,
+            delete_chatroom_member),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
             DecPath, ForwardMsg, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts,
@@ -310,6 +311,16 @@ pub fn get_routes(
             .and_then(invite_chatroom_member)
     }
 
+    fn deletechatroommember(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("delete-chatroom-member")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(delete_chatroom_member)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -333,6 +344,7 @@ pub fn get_routes(
         .or(acceptnewfriend(wechat.clone()))
         .or(addchatroommember(wechat.clone()))
         .or(invitechatroommember(wechat.clone()))
+        .or(deletechatroommember(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -971,6 +983,35 @@ pub async fn invite_chatroom_member(
 ) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().invite_chatroom_member(msg) {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status == 1),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/delete-chatroom-member",
+    request_body = MemberMgmt,
+    responses(
+        (status = 200, body = ApiResponseBool, description = "删除群成员")
+    )
+)]
+pub async fn delete_chatroom_member(
+    msg: MemberMgmt,
+    wechat: Arc<Mutex<WeChat>>,
+) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().delete_chatroom_member(msg) {
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
