@@ -184,7 +184,7 @@ impl WeChat {
         }
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(1 == status);
+                return Ok(status == 1);
             }
             _ => {
                 return Ok(false);
@@ -416,9 +416,9 @@ impl WeChat {
         };
     }
 
-    pub fn disable_recv_msg(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn disable_recv_msg(&mut self) -> Result<i32, Box<dyn std::error::Error>> {
         if !self.listening.load(Ordering::Relaxed) {
-            return Ok(true);
+            return Ok(0);
         }
 
         let req = wcf::Request {
@@ -434,11 +434,11 @@ impl WeChat {
         };
 
         match rsp.unwrap() {
-            wcf::response::Msg::Status(_status) => {
+            wcf::response::Msg::Status(status) => {
                 // TODO: 处理状态码
                 self.msg_socket.clone().unwrap().close();
                 self.listening.store(false, Ordering::Relaxed);
-                return Ok(true);
+                return Ok(status);
             }
             _ => {
                 return Err("停止消息接收失败".into());
@@ -469,7 +469,7 @@ impl WeChat {
         };
     }
 
-    pub fn refresh_pyq(self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn refresh_pyq(self, id: u64) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncRefreshPyq.into(),
             msg: Some(wcf::request::Msg::Ui64(id)),
@@ -484,7 +484,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 1);
+                return Ok(status);
             }
             _ => {
                 return Err("刷新朋友圈失败".into());
@@ -492,7 +492,7 @@ impl WeChat {
         };
     }
 
-    pub fn send_text(self, text: wcf::TextMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_text(self, text: wcf::TextMsg) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncSendTxt.into(),
             msg: Some(wcf::request::Msg::Txt(text)),
@@ -507,7 +507,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 0);
+                return Ok(status);
             }
             _ => {
                 return Err("发送文本消息失败".into());
@@ -515,7 +515,7 @@ impl WeChat {
         };
     }
 
-    pub fn send_image(self, img: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_image(self, img: wcf::PathMsg) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncSendImg.into(),
             msg: Some(wcf::request::Msg::File(img)),
@@ -530,7 +530,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 0);
+                return Ok(status);
             }
             _ => {
                 return Err("发送图片消息失败".into());
@@ -538,7 +538,7 @@ impl WeChat {
         };
     }
 
-    pub fn send_file(self, file: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_file(self, file: wcf::PathMsg) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncSendFile.into(),
             msg: Some(wcf::request::Msg::File(file)),
@@ -553,7 +553,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 0);
+                return Ok(status);
             }
             _ => {
                 return Err("发送文件消息失败".into());
@@ -561,7 +561,7 @@ impl WeChat {
         };
     }
 
-    pub fn send_rich_text(self, msg: wcf::RichText) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_rich_text(self, msg: wcf::RichText) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncSendRichTxt.into(),
             msg: Some(wcf::request::Msg::Rt(msg)),
@@ -576,7 +576,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 0);
+                return Ok(status);
             }
             _ => {
                 return Err("发送卡片消息失败".into());
@@ -584,7 +584,7 @@ impl WeChat {
         };
     }
 
-    pub fn send_pat_msg(self, msg: wcf::PatMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_pat_msg(self, msg: wcf::PatMsg) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncSendPatMsg.into(),
             msg: Some(wcf::request::Msg::Pm(msg)),
@@ -599,7 +599,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 0);
+                return Ok(status);
             }
             _ => {
                 return Err("发送拍一拍消息失败".into());
@@ -607,7 +607,7 @@ impl WeChat {
         };
     }
 
-    pub fn forward_msg(self, msg: wcf::ForwardMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn forward_msg(self, msg: wcf::ForwardMsg) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncForwardMsg.into(),
             msg: Some(wcf::request::Msg::Fm(msg)),
@@ -622,7 +622,7 @@ impl WeChat {
 
         match rsp.unwrap() {
             wcf::response::Msg::Status(status) => {
-                return Ok(status == 0);
+                return Ok(status);
             }
             _ => {
                 return Err("转发消息失败".into());

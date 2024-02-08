@@ -538,7 +538,7 @@ pub async fn refresh_pyq(query: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 1),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -564,7 +564,7 @@ pub async fn send_text(text: TextMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 0),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -590,7 +590,7 @@ pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Js
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 0),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -616,7 +616,7 @@ pub async fn send_file(file: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 0),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -642,7 +642,7 @@ pub async fn send_rich_text(msg: RichText, wechat: Arc<Mutex<WeChat>>) -> Result
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 0),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -668,7 +668,7 @@ pub async fn send_pat_msg(msg: PatMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Jso
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 0),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -694,7 +694,7 @@ pub async fn forward_msg(msg: ForwardMsg, wechat: Arc<Mutex<WeChat>>) -> Result<
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status),
+            data: Some(status == 0),
         },
         Err(error) => ApiResponse {
             status: 1,
