@@ -848,4 +848,27 @@ impl WeChat {
             }
         };
     }
+
+    pub fn revoke_msg(self, id: u64) -> Result<i32, Box<dyn std::error::Error>> {
+        let req = wcf::Request {
+            func: wcf::Functions::FuncRevokeMsg.into(),
+            msg: Some(wcf::request::Msg::Ui64(id)),
+        };
+        let rsp = match self.send_cmd(req) {
+            Ok(res) => res,
+            Err(e) => {
+                error!("撤回消息命令发送失败: {}", e);
+                return Err("撤回消息命令发送失败".into());
+            }
+        };
+
+        match rsp.unwrap() {
+            wcf::response::Msg::Status(status) => {
+                return Ok(status);
+            }
+            _ => {
+                return Err("撤回消息失败".into());
+            }
+        };
+    }
 }

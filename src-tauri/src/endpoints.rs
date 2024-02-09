@@ -95,7 +95,7 @@ pub fn get_routes(
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
             refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,
             recv_transfer, query_sql, accept_new_friend, add_chatroom_member, invite_chatroom_member,
-            delete_chatroom_member),
+            delete_chatroom_member, revoke_msg),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
             DecPath, ForwardMsg, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts,
@@ -321,6 +321,16 @@ pub fn get_routes(
             .and_then(delete_chatroom_member)
     }
 
+    fn revokemsg(
+        wechat: Arc<Mutex<WeChat>>,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::path!("revoke-msg")
+            .and(warp::post())
+            .and(warp::query::<Id>())
+            .and(warp::any().map(move || wechat.clone()))
+            .and_then(revoke_msg)
+    }
+
     api_doc
         .or(swagger_ui)
         .or(islogin(wechat.clone()))
@@ -345,6 +355,7 @@ pub fn get_routes(
         .or(addchatroommember(wechat.clone()))
         .or(invitechatroommember(wechat.clone()))
         .or(deletechatroommember(wechat.clone()))
+        .or(revokemsg(wechat.clone()))
 }
 
 async fn serve_swagger(
@@ -1012,6 +1023,32 @@ pub async fn delete_chatroom_member(
 ) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().delete_chatroom_member(msg) {
+        Ok(status) => ApiResponse {
+            status: 0,
+            error: None,
+            data: Some(status == 1),
+        },
+        Err(error) => ApiResponse {
+            status: 1,
+            error: Some(error.to_string()),
+            data: None,
+        },
+    };
+    Ok(warp::reply::json(&rsp))
+}
+
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/revoke-msg",
+    params(("id"=u64, Query, description = "待撤回消息 id")),
+    responses(
+        (status = 200, body = ApiResponseBool, description = "撤回消息")
+    )
+)]
+pub async fn revoke_msg(msg: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wechat = wechat.lock().unwrap();
+    let rsp = match wechat.clone().revoke_msg(msg.id) {
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
