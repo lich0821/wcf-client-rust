@@ -390,6 +390,7 @@ async fn serve_swagger(
     }
 }
 
+/// 查询登录状态
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -415,6 +416,7 @@ pub async fn is_login(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     Ok(warp::reply::json(&rsp))
 }
 
+/// 查询登录 wxid
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -440,6 +442,7 @@ pub async fn get_self_wxid(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
     Ok(warp::reply::json(&rsp))
 }
 
+/// 获取登录账号信息
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -465,6 +468,7 @@ pub async fn get_user_info(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
     Ok(warp::reply::json(&rsp))
 }
 
+/// 获取所有联系人
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -490,6 +494,7 @@ pub async fn get_contacts(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible
     Ok(warp::reply::json(&rsp))
 }
 
+/// 获取所有可查询数据库
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -515,6 +520,7 @@ pub async fn get_dbs(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     Ok(warp::reply::json(&rsp))
 }
 
+/// 查询数据库下的表信息
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -543,6 +549,7 @@ pub async fn get_tables(db: String, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
     Ok(warp::reply::json(&rsp))
 }
 
+/// 获取消息类型枚举
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -568,6 +575,7 @@ pub async fn get_msg_types(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallibl
     Ok(warp::reply::json(&rsp))
 }
 
+/// 刷新朋友圈（在消息回调中查看）
 #[utoipa::path(
     get,
     tag = "WCF",
@@ -594,6 +602,7 @@ pub async fn refresh_pyq(query: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
     Ok(warp::reply::json(&rsp))
 }
 
+/// 发送文本消息
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -620,6 +629,7 @@ pub async fn send_text(text: TextMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
     Ok(warp::reply::json(&rsp))
 }
 
+/// 发送图片
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -646,6 +656,7 @@ pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Js
     Ok(warp::reply::json(&rsp))
 }
 
+/// 发送文件
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -672,6 +683,7 @@ pub async fn send_file(file: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
     Ok(warp::reply::json(&rsp))
 }
 
+/// 发送卡片消息
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -698,6 +710,7 @@ pub async fn send_rich_text(msg: RichText, wechat: Arc<Mutex<WeChat>>) -> Result
     Ok(warp::reply::json(&rsp))
 }
 
+/// 拍一拍
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -724,6 +737,7 @@ pub async fn send_pat_msg(msg: PatMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Jso
     Ok(warp::reply::json(&rsp))
 }
 
+/// 转发消息
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -750,6 +764,7 @@ pub async fn forward_msg(msg: ForwardMsg, wechat: Arc<Mutex<WeChat>>) -> Result<
     Ok(warp::reply::json(&rsp))
 }
 
+/// 保存语音
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -776,6 +791,7 @@ pub async fn save_audio(msg: AudioMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Jso
     Ok(warp::reply::json(&rsp))
 }
 
+/// 保存图片
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -837,6 +853,7 @@ pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
     return handle_error("下载超时");
 }
 
+/// 接收转账
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -863,6 +880,7 @@ pub async fn recv_transfer(msg: Transfer, wechat: Arc<Mutex<WeChat>>) -> Result<
     Ok(warp::reply::json(&rsp))
 }
 
+/// 执行 SQL 查询数据库
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -921,6 +939,7 @@ pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json,
     Ok(warp::reply::json(&rsp))
 }
 
+/// 通过好友申请
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -950,6 +969,7 @@ pub async fn accept_new_friend(
     Ok(warp::reply::json(&rsp))
 }
 
+/// 添加群成员
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -979,6 +999,7 @@ pub async fn add_chatroom_member(
     Ok(warp::reply::json(&rsp))
 }
 
+/// 邀请群成员
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -1008,6 +1029,7 @@ pub async fn invite_chatroom_member(
     Ok(warp::reply::json(&rsp))
 }
 
+/// 删除群成员（踢人）
 #[utoipa::path(
     post,
     tag = "WCF",
@@ -1037,6 +1059,7 @@ pub async fn delete_chatroom_member(
     Ok(warp::reply::json(&rsp))
 }
 
+/// 撤回消息
 #[utoipa::path(
     post,
     tag = "WCF",
