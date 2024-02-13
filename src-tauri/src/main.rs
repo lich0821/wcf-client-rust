@@ -76,22 +76,17 @@ async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<()
     Ok(())
 }
 
-fn cleanup(state: tauri::State<'_, Arc<Mutex<AppState>>>) {
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
-    rt.block_on(async {
-        if let Err(e) = stop_server(state).await {
-            eprintln!("Failed to stop server: {}", e);
-        }
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-    });
+#[command]
+async fn confirm_exit(app_handle: tauri::AppHandle) {
+    let _ = stop_server(app_handle.state()).await;
+    std::process::exit(0);
 }
 
 fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemTrayEvent) {
     match event {
         tauri::SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
             "quit" => {
-                cleanup(app_handle.state());
-                std::process::exit(0);
+                app_handle.emit_all("request-exit", ()).unwrap();
             }
             "hide" => {
                 if let Some(window) = app_handle.get_window("main") {
@@ -170,8 +165,12 @@ fn main() {
         .on_window_event(move |event| match event.event() {
             WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
-                cleanup(event.window().app_handle().clone().state());
-                event.window().close().unwrap();
+                if let Some(window) = event.window().get_window("main") {
+                    window.hide().unwrap();
+                    let tray_handle = event.window().app_handle().tray_handle();
+                    tray_handle.get_item("show").set_enabled(true).unwrap();
+                    tray_handle.get_item("hide").set_enabled(false).unwrap();
+                }
             }
             _ => {}
         })
@@ -180,7 +179,11 @@ fn main() {
         .manage(Arc::new(Mutex::new(AppState {
             http_server: HttpServer::new(),
         })))
-        .invoke_handler(tauri::generate_handler![start_server, stop_server]);
+        .invoke_handler(tauri::generate_handler![
+            start_server,
+            stop_server,
+            confirm_exit
+        ]);
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,3 +1,4 @@
+// import { confirm } from '@tauri-apps/api/dialog';
 const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 
@@ -45,6 +46,19 @@ async function startSerialEventListener() {
     });
 }
 
+async function confirmExit() {
+    const shouldExit = await confirm("退出将无法使用服务，确定要退出吗？");
+    if (shouldExit) {
+        await invoke('confirm_exit');
+    }
+}
+
+async function startExitEventListener() {
+    await listen('request-exit', () => {
+        confirmExit();
+    });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
     urlInputEl = document.querySelector("#cburl");
     logTextarea = document.querySelector("#log");
@@ -56,4 +70,5 @@ window.addEventListener("DOMContentLoaded", () => {
         start(urlInputEl.value);
     });
     startSerialEventListener();
+    startExitEventListener();
 });
