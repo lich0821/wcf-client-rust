@@ -2,10 +2,16 @@
 
 use chrono::Local;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
+use std::ptr;
 use std::sync::{Arc, Mutex};
-use tauri::{
-    command, AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayMenu, SystemTrayMenuItem,
-    WindowEvent,
+use tauri::{command, AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayMenu, WindowEvent};
+use winapi::{
+    shared::winerror::ERROR_ALREADY_EXISTS,
+    um::{
+        errhandlingapi::GetLastError,
+        synchapi::CreateMutexA,
+        winuser::{FindWindowA, SetForegroundWindow, ShowWindow, SW_RESTORE},
+    },
 };
 
 mod endpoints;
@@ -88,31 +94,12 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
             "quit" => {
                 app_handle.emit_all("request-exit", ()).unwrap();
             }
-            "hide" => {
-                if let Some(window) = app_handle.get_window("main") {
-                    window.hide().unwrap();
-                    let tray_handle = app_handle.tray_handle();
-                    tray_handle.get_item("hide").set_enabled(false).unwrap();
-                    tray_handle.get_item("show").set_enabled(true).unwrap();
-                }
-            }
-            "show" => {
-                if let Some(window) = app_handle.get_window("main") {
-                    window.show().unwrap();
-                    let tray_handle = app_handle.tray_handle();
-                    tray_handle.get_item("show").set_enabled(false).unwrap();
-                    tray_handle.get_item("hide").set_enabled(true).unwrap();
-                }
-            }
             _ => {}
         },
         tauri::SystemTrayEvent::LeftClick { .. } => {
             if let Some(window) = app_handle.get_window("main") {
                 window.show().unwrap();
                 window.set_focus().unwrap();
-                let tray_handle = app_handle.tray_handle();
-                tray_handle.get_item("show").set_enabled(false).unwrap();
-                tray_handle.get_item("hide").set_enabled(true).unwrap();
             }
         }
         _ => {}
@@ -153,16 +140,26 @@ fn init_log(handle: AppHandle) {
 }
 
 fn main() {
-    let show = CustomMenuItem::new("show".to_string(), "显示").disabled();
-    let hide = CustomMenuItem::new("hide".to_string(), "隐藏");
+    let mutex_name = b"Global\\wcfrust_app_mutex\0";
+    unsafe {
+        let handle = CreateMutexA(ptr::null_mut(), 0, mutex_name.as_ptr() as *const i8);
+        if handle.is_null() {
+            eprintln!("Failed to create mutex.");
+            return;
+        }
+        if GetLastError() == ERROR_ALREADY_EXISTS {
+            let window_name = "WcfRust\0".as_ptr() as *const i8;
+            let hwnd = FindWindowA(ptr::null(), window_name);
+            if !hwnd.is_null() {
+                ShowWindow(hwnd, SW_RESTORE);
+                SetForegroundWindow(hwnd);
+            }
+            return;
+        }
+    }
+
     let quit = CustomMenuItem::new("quit".to_string(), "退出");
-
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(show)
-        .add_item(hide)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(quit);
-
+    let tray_menu = SystemTrayMenu::new().add_item(quit);
     let tray = SystemTray::new().with_menu(tray_menu);
 
     let app = tauri::Builder::default()
@@ -176,9 +173,6 @@ fn main() {
                 api.prevent_close();
                 if let Some(window) = event.window().get_window("main") {
                     window.hide().unwrap();
-                    let tray_handle = event.window().app_handle().tray_handle();
-                    tray_handle.get_item("show").set_enabled(true).unwrap();
-                    tray_handle.get_item("hide").set_enabled(false).unwrap();
                 }
             }
             _ => {}
