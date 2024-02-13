@@ -106,6 +106,15 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
             }
             _ => {}
         },
+        tauri::SystemTrayEvent::LeftClick { .. } => {
+            if let Some(window) = app_handle.get_window("main") {
+                window.show().unwrap();
+                window.set_focus().unwrap();
+                let tray_handle = app_handle.tray_handle();
+                tray_handle.get_item("show").set_enabled(false).unwrap();
+                tray_handle.get_item("hide").set_enabled(true).unwrap();
+            }
+        }
         _ => {}
     }
 }
