@@ -1,5 +1,4 @@
 use base64::encode;
-// use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
