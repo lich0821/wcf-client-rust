@@ -336,12 +336,10 @@ impl WeChat {
                         }
                     }
                     Err(nng::Error::TimedOut) => {
-                        // 如果是超时错误，忽略它并继续尝试接收消息
                         debug!("消息接收超时，继续等待...");
                         continue;
                     }
                     Err(e) => {
-                        // 对于其他类型的错误，记录警告并返回错误
                         warn!("消息接收失败: {}", e);
                         break;
                     }
@@ -407,8 +405,11 @@ impl WeChat {
                     let mut wc2 = self.clone();
                     thread::spawn(move || listening_msg(&mut wc1, tx));
                     thread::spawn(move || forward_msg(&mut wc2, cburl, rx));
+                    return Ok(true);
+                } else {
+                    error!("启用消息接收失败：{}", status);
+                    return Ok(false);
                 }
-                return Ok(true);
             }
             _ => {
                 return Err("启用消息接收失败".into());
