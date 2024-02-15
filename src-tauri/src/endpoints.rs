@@ -98,7 +98,7 @@ pub fn get_routes(
             delete_chatroom_member, revoke_msg),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
-            DecPath, ForwardMsg, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts,
+            DecPath, ForwardMsg, Image, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts,
             TextMsg, Transfer, UserInfo, Verification,
         )),
         tags((name = "WCF", description = "玩微信的接口")),
