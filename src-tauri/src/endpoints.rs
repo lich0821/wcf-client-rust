@@ -726,7 +726,7 @@ pub async fn send_pat_msg(msg: PatMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Jso
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 0),
+            data: Some(status == 1),
         },
         Err(error) => ApiResponse {
             status: 1,
