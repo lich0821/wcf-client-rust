@@ -1,5 +1,6 @@
 use base64::encode;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
@@ -60,10 +61,9 @@ pub struct Image {
     timeout: u8,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 #[serde(untagged)]
 pub enum FieldContent {
-    Bytes(Vec<u8>),
     Int(i64),
     Float(f64),
     Utf8String(String),
@@ -98,8 +98,8 @@ pub fn get_routes(
             delete_chatroom_member, revoke_msg),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
-            DecPath, ForwardMsg, Image, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts,
-            TextMsg, Transfer, UserInfo, Verification,
+            DecPath, FieldContent, ForwardMsg, Image, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact,
+            RpcContacts, TextMsg, Transfer, UserInfo, Verification,
         )),
         tags((name = "WCF", description = "玩微信的接口")),
     )]
@@ -887,7 +887,7 @@ pub async fn recv_transfer(msg: Transfer, wechat: Arc<Mutex<WeChat>>) -> Result<
     path = "/sql",
     request_body = DbQuery,
     responses(
-        (status = 200, body = ApiResponseBool, description = "执行 SQL")
+        (status = 200, body = Vec<HashMap<String, FieldContent>>, description = "执行 SQL")
     )
 )]
 pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
@@ -898,29 +898,23 @@ pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json,
                 .rows
                 .into_iter()
                 .map(|r| {
-                    let fields = r
-                        .fields
-                        .into_iter()
-                        .map(|f| {
-                            let utf8 = String::from_utf8(f.content.clone()).unwrap_or_default();
-                            let content: FieldContent = match f.r#type {
-                                1 => utf8
-                                    .parse::<i64>()
-                                    .map_or(FieldContent::None, FieldContent::Int),
-                                2 => utf8
-                                    .parse::<f64>()
-                                    .map_or(FieldContent::None, FieldContent::Float),
-                                3 => FieldContent::Utf8String(utf8),
-                                4 => FieldContent::Base64String(encode(&f.content.clone())),
-                                _ => FieldContent::None,
-                            };
-                            NewField {
-                                column: f.column,
-                                content,
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    NewRow { fields }
+                    let mut row_map = HashMap::new();
+                    for f in r.fields {
+                        let utf8 = String::from_utf8(f.content.clone()).unwrap_or_default();
+                        let content: FieldContent = match f.r#type {
+                            1 => utf8
+                                .parse::<i64>()
+                                .map_or(FieldContent::None, FieldContent::Int),
+                            2 => utf8
+                                .parse::<f64>()
+                                .map_or(FieldContent::None, FieldContent::Float),
+                            3 => FieldContent::Utf8String(utf8),
+                            4 => FieldContent::Base64String(encode(&f.content.clone())),
+                            _ => FieldContent::None,
+                        };
+                        row_map.insert(f.column, content);
+                    }
+                    row_map
                 })
                 .collect::<Vec<_>>();
 
