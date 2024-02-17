@@ -546,7 +546,7 @@ pub async fn refresh_pyq(query: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -573,7 +573,7 @@ pub async fn send_text(text: TextMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 0),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -600,7 +600,7 @@ pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Js
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 0),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -627,7 +627,7 @@ pub async fn send_file(file: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Json
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 0),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -654,7 +654,7 @@ pub async fn send_rich_text(msg: RichText, wechat: Arc<Mutex<WeChat>>) -> Result
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 0),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -681,7 +681,7 @@ pub async fn send_pat_msg(msg: PatMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Jso
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -708,7 +708,7 @@ pub async fn forward_msg(msg: ForwardMsg, wechat: Arc<Mutex<WeChat>>) -> Result<
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 0),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -777,7 +777,7 @@ pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
         Err(error) => return handle_error(&error.to_string()),
     };
 
-    if status != 0 {
+    if !status {
         return handle_error("下载失败");
     }
 
@@ -824,7 +824,7 @@ pub async fn recv_transfer(msg: Transfer, wechat: Arc<Mutex<WeChat>>) -> Result<
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -900,7 +900,7 @@ pub async fn accept_new_friend(msg: Verification, wechat: Arc<Mutex<WeChat>>) ->
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -927,7 +927,7 @@ pub async fn add_chatroom_member(msg: MemberMgmt, wechat: Arc<Mutex<WeChat>>) ->
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -954,7 +954,7 @@ pub async fn invite_chatroom_member(msg: MemberMgmt, wechat: Arc<Mutex<WeChat>>)
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -981,7 +981,7 @@ pub async fn delete_chatroom_member(msg: MemberMgmt, wechat: Arc<Mutex<WeChat>>)
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,
@@ -1008,7 +1008,7 @@ pub async fn revoke_msg(msg: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Inf
         Ok(status) => ApiResponse {
             status: 0,
             error: None,
-            data: Some(status == 1),
+            data: Some(status),
         },
         Err(error) => ApiResponse {
             status: 1,

@@ -1,5 +1,5 @@
 use log::{debug, error, info, warn};
-use nng::options::{Options, RecvTimeout};
+use nng::options::{Options, RecvTimeout, SendTimeout};
 use prost::Message;
 use reqwest::blocking::Client;
 use std::os::windows::process::CommandExt;
@@ -18,6 +18,59 @@ const MSG_URL: &'static str = "tcp://127.0.0.1:10087";
 
 pub mod wcf {
     include!("wcf.rs");
+}
+
+use wcf::response::Msg as RspMsg;
+
+#[macro_export]
+macro_rules! create_request {
+    ($func:expr) => {
+        wcf::Request {
+            func: $func.into(),
+            msg: None,
+        }
+    };
+    ($func:expr, $msg:expr) => {
+        wcf::Request {
+            func: $func.into(),
+            msg: Some($msg),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_cmd {
+    ($expr:expr, $err_msg:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                error!("{}: {:?}", $err_msg, e);
+                return Err($err_msg.into());
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! process_response {
+    ($rsp:expr, Status, $expected:expr, $err_msg:expr) => {
+        match $rsp {
+            Some(RspMsg::Status(status)) => Ok(status == $expected),
+            _ => {
+                log::error!("{}", $err_msg);
+                Err($err_msg.into())
+            }
+        }
+    };
+    ($rsp:expr, $msg_variant:ident, $err_msg:expr) => {
+        match $rsp {
+            Some(RspMsg::$msg_variant(data)) => Ok(data),
+            _ => {
+                log::error!("{}", $err_msg);
+                Err($err_msg.into())
+            }
+        }
+    };
 }
 
 #[derive(Clone, Debug)]
@@ -59,49 +112,27 @@ impl WeChat {
             args.push("debug");
         }
         debug!("exe: {}, debug: {}", exe.clone().to_str().unwrap(), debug);
-        let _ = match Command::new(exe.to_str().unwrap())
-            .creation_flags(0x08000000)
-            .args(args)
-            .output()
-        {
-            Ok(output) => output,
-            Err(e) => {
-                error!("命令行启动失败: {}", e);
-                return Err("服务启动失败".into());
-            }
-        };
+        let _ = try_cmd!(
+            Command::new(exe.to_str().unwrap_or_default())
+                .creation_flags(0x08000000)
+                .args(&args)
+                .output(),
+            "wcf.exe 启动失败"
+        );
         Ok(())
     }
 
     fn connect(url: &str) -> Result<nng::Socket, Box<dyn std::error::Error>> {
-        let client = match nng::Socket::new(nng::Protocol::Pair1) {
-            Ok(client) => client,
-            Err(e) => {
-                error!("Socket创建失败: {}", e);
-                return Err("连接服务失败".into());
-            }
-        };
-        match client.set_opt::<RecvTimeout>(Some(Duration::from_millis(5000))) {
-            Ok(()) => (),
-            Err(e) => {
-                error!("连接参数设置失败: {}", e);
-                return Err("连接参数设置失败".into());
-            }
-        };
-        match client.set_opt::<nng::options::SendTimeout>(Some(Duration::from_millis(5000))) {
-            Ok(()) => (),
-            Err(e) => {
-                error!("连接参数设置失败: {}", e);
-                return Err("连接参数设置失败".into());
-            }
-        };
-        match client.dial(url) {
-            Ok(()) => (),
-            Err(e) => {
-                error!("连接服务失败: {}", e);
-                return Err("连接服务失败".into());
-            }
-        };
+        let client = try_cmd!(nng::Socket::new(nng::Protocol::Pair1), "Socket 创建失败");
+        try_cmd!(
+            client.set_opt::<RecvTimeout>(Some(Duration::from_millis(5000))),
+            "接收超时设置失败"
+        );
+        try_cmd!(
+            client.set_opt::<SendTimeout>(Some(Duration::from_millis(5000))),
+            "发送超时设置失败"
+        );
+        try_cmd!(client.dial(url), "连接服务失败");
         Ok(client)
     }
 
@@ -111,197 +142,62 @@ impl WeChat {
             self.listening.store(false, Ordering::Relaxed);
         }
         self.cmd_socket.close();
-        let output = Command::new(self.exe.to_str().unwrap())
-            .creation_flags(0x08000000)
-            .args(["stop"])
-            .output();
-        let _output = match output {
-            Ok(output) => output,
-            Err(e) => {
-                error!("服务停止失败: {}", e);
-                return Err("服务停止失败".into());
-            }
-        };
+        try_cmd!(
+            Command::new(self.exe.to_str().unwrap())
+                .creation_flags(0x08000000)
+                .args(["stop"])
+                .output(),
+            "服务停止失败"
+        );
         debug!("服务已停止: {}", CMD_URL);
         Ok(())
     }
 
-    fn send_cmd(&self, req: wcf::Request) -> Result<Option<wcf::response::Msg>, Box<dyn std::error::Error>> {
+    fn send_cmd(&self, req: wcf::Request) -> Result<Option<RspMsg>, Box<dyn std::error::Error>> {
         let mut buf = Vec::with_capacity(req.encoded_len());
-        match req.encode(&mut buf) {
-            Ok(()) => (),
-            Err(e) => {
-                error!("编码失败: {}", e);
-                return Err("编码失败".into());
-            }
-        };
+        try_cmd!(req.encode(&mut buf), "编码失败");
         let msg = nng::Message::from(&buf[..]);
-        let _ = match self.cmd_socket.send(msg) {
-            Ok(()) => {}
-            Err(e) => {
-                error!("消息发送失败: {:?}, {}", e.0, e.1);
-                return Err("消息发送失败".into());
-            }
-        };
-        let mut msg = match self.cmd_socket.recv() {
-            Ok(msg) => msg,
-            Err(e) => {
-                error!("消息接收失败: {}", e);
-                return Err("消息接收失败".into());
-            }
-        };
-        // 反序列化为prost消息
-        let rsp = match wcf::Response::decode(msg.as_slice()) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("解码失败: {}", e);
-                return Err("解码失败".into());
-            }
-        };
+        try_cmd!(self.cmd_socket.send(msg), "消息发送失败");
+        let mut msg = try_cmd!(self.cmd_socket.recv(), "消息接收失败");
+        let rsp = try_cmd!(wcf::Response::decode(msg.as_slice()), "解码失败");
         msg.clear();
         Ok(rsp.msg)
     }
 
-    pub fn is_login(self) -> Result<bool, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncIsLogin.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("登录状态命令发送失败: {}", e);
-                return Err("登录状态命令发送失败".into());
-            }
-        };
-        if rsp.is_none() {
-            return Ok(false);
-        }
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status == 1);
-            }
-            _ => {
-                return Ok(false);
-            }
-        };
+    pub fn is_login(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncIsLogin);
+        let rsp = try_cmd!(self.send_cmd(req), "登录状态命令发送失败");
+        process_response!(rsp, Status, 1, "获取登录状态失败")
     }
 
-    pub fn get_self_wxid(self) -> Result<String, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetSelfWxid.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("查询 wxid 命令发送失败: {}", e);
-                return Err("查询 wxid 命令发送失败".into());
-            }
-        };
-        if rsp.is_none() {
-            return Ok("".to_string());
-        }
-        match rsp.unwrap() {
-            wcf::response::Msg::Str(wxid) => {
-                return Ok(wxid);
-            }
-            _ => {
-                return Ok("".to_string());
-            }
-        };
+    pub fn get_self_wxid(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncGetSelfWxid);
+        let rsp = try_cmd!(self.send_cmd(req), "查询 wxid 命令发送失败");
+        process_response!(rsp, Str, "获取 wxid 失败")
     }
 
     pub fn get_user_info(self) -> Result<wcf::UserInfo, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetUserInfo.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("获取用户信息命令发送失败: {}", e);
-                return Err("获取用户信息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Ui(ui) => {
-                return Ok(ui);
-            }
-            _ => {
-                return Err("获取用户信息失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncGetUserInfo);
+        let rsp = try_cmd!(self.send_cmd(req), "获取用户信息命令发送失败");
+        process_response!(rsp, Ui, "获取用户信息失败")
     }
 
     pub fn get_contacts(self) -> Result<wcf::RpcContacts, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetContacts.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("获取联系人列表命令发送失败: {}", e);
-                return Err("获取联系人列表命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Contacts(contacts) => {
-                return Ok(contacts);
-            }
-            _ => {
-                return Err("获取联系人列表失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncGetContacts);
+        let rsp = try_cmd!(self.send_cmd(req), "获取联系人列表命令发送失败");
+        process_response!(rsp, Contacts, "获取联系人列表失败")
     }
 
     pub fn get_dbs(self) -> Result<wcf::DbNames, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetDbNames.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("获取数据库名称命令发送失败: {}", e);
-                return Err("获取数据库名称命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Dbs(dbs) => {
-                return Ok(dbs);
-            }
-            _ => {
-                return Err("获取数据库名称失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncGetDbNames);
+        let rsp = try_cmd!(self.send_cmd(req), "获取数据库名称命令发送失败");
+        process_response!(rsp, Dbs, "获取数据库名称失败")
     }
 
     pub fn get_tables(self, db: String) -> Result<wcf::DbTables, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetDbTables.into(),
-            msg: Some(wcf::request::Msg::Str(db)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("获取数据表命令发送失败: {}", e);
-                return Err("获取数据表命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Tables(tables) => {
-                return Ok(tables);
-            }
-            _ => {
-                return Err("获取数据表失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncGetDbTables, wcf::request::Msg::Str(db));
+        let rsp = try_cmd!(self.send_cmd(req), "获取数据表命令发送失败");
+        process_response!(rsp, Tables, "获取数据表失败")
     }
 
     pub fn enable_recv_msg(&mut self, cburl: String) -> Result<bool, Box<dyn std::error::Error>> {
@@ -316,7 +212,7 @@ impl WeChat {
                                 break;
                             }
                         };
-                        if let Some(wcf::response::Msg::Wxmsg(msg)) = rsp.msg {
+                        if let Some(RspMsg::Wxmsg(msg)) = rsp.msg {
                             match tx.send(msg) {
                                 Ok(_) => {
                                     debug!("消息入队成功");
@@ -378,20 +274,11 @@ impl WeChat {
             return Ok(true);
         }
 
-        let req = wcf::Request {
-            func: wcf::Functions::FuncEnableRecvTxt.into(),
-            msg: Some(wcf::request::Msg::Flag(true)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("启用消息接收命令发送失败: {}", e);
-                return Err("启用消息接收命令发送失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncEnableRecvTxt, wcf::request::Msg::Flag(true));
+        let rsp = try_cmd!(self.send_cmd(req), "启用消息接收命令发送失败");
 
         match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
+            RspMsg::Status(status) => {
                 if status == 0 {
                     let (tx, rx) = mpsc::sync_channel::<wcf::WxMsg>(100);
                     self.msg_socket = Some(WeChat::connect(MSG_URL).unwrap());
@@ -417,22 +304,13 @@ impl WeChat {
             return Ok(0);
         }
 
-        let req = wcf::Request {
-            func: wcf::Functions::FuncDisableRecvTxt.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("停止消息接收命令发送失败: {}", e);
-                return Err("停止消息接收命令发送失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncDisableRecvTxt);
+        let rsp = try_cmd!(self.send_cmd(req), "停止消息接收命令发送失败");
 
         match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
+            RspMsg::Status(status) => {
                 // TODO: 处理状态码
-                self.msg_socket.clone().unwrap().close();
+                self.msg_socket.take().map(|s| s.close());
                 self.listening.store(false, Ordering::Relaxed);
                 return Ok(status);
             }
@@ -443,416 +321,110 @@ impl WeChat {
     }
 
     pub fn get_msg_types(self) -> Result<wcf::MsgTypes, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetMsgTypes.into(),
-            msg: None,
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("获取消息类型命令发送失败: {}", e);
-                return Err("获取消息类型命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Types(types) => {
-                return Ok(types);
-            }
-            _ => {
-                return Err("获取消息类型失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncGetMsgTypes);
+        let rsp = try_cmd!(self.send_cmd(req), "获取消息类型命令发送失败");
+        process_response!(rsp, Types, "获取消息类型失败")
     }
 
-    pub fn refresh_pyq(self, id: u64) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncRefreshPyq.into(),
-            msg: Some(wcf::request::Msg::Ui64(id)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("刷新朋友圈命令发送失败: {}", e);
-                return Err("刷新朋友圈命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("刷新朋友圈失败".into());
-            }
-        };
+    pub fn refresh_pyq(self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncRefreshPyq, wcf::request::Msg::Ui64(id));
+        let rsp = try_cmd!(self.send_cmd(req), "刷新朋友圈命令发送失败");
+        process_response!(rsp, Status, 1, "刷新朋友圈失败")
     }
 
-    pub fn send_text(self, text: wcf::TextMsg) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncSendTxt.into(),
-            msg: Some(wcf::request::Msg::Txt(text)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("发送文本消息命令发送失败: {}", e);
-                return Err("发送文本消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("发送文本消息失败".into());
-            }
-        };
+    pub fn send_text(self, text: wcf::TextMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncSendTxt, wcf::request::Msg::Txt(text));
+        let rsp = try_cmd!(self.send_cmd(req), "发送文本消息命令发送失败");
+        process_response!(rsp, Status, 0, "发送文本消息失败")
     }
 
-    pub fn send_image(self, img: wcf::PathMsg) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncSendImg.into(),
-            msg: Some(wcf::request::Msg::File(img)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("发送图片消息命令发送失败: {}", e);
-                return Err("发送图片消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("发送图片消息失败".into());
-            }
-        };
+    pub fn send_image(self, img: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncSendImg, wcf::request::Msg::File(img));
+        let rsp = try_cmd!(self.send_cmd(req), "发送图片消息命令发送失败");
+        process_response!(rsp, Status, 0, "发送图片消息失败")
     }
 
-    pub fn send_file(self, file: wcf::PathMsg) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncSendFile.into(),
-            msg: Some(wcf::request::Msg::File(file)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("发送文件消息命令发送失败: {}", e);
-                return Err("发送文件消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("发送文件消息失败".into());
-            }
-        };
+    pub fn send_file(self, file: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncSendFile, wcf::request::Msg::File(file));
+        let rsp = try_cmd!(self.send_cmd(req), "发送文件消息命令发送失败");
+        process_response!(rsp, Status, 0, "发送文件消息失败")
     }
 
-    pub fn send_rich_text(self, msg: wcf::RichText) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncSendRichTxt.into(),
-            msg: Some(wcf::request::Msg::Rt(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("发送卡片消息命令发送失败: {}", e);
-                return Err("发送卡片消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("发送卡片消息失败".into());
-            }
-        };
+    pub fn send_rich_text(self, msg: wcf::RichText) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncSendRichTxt, wcf::request::Msg::Rt(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "发送卡片消息命令发送失败");
+        process_response!(rsp, Status, 0, "发送卡片消息失败")
     }
 
-    pub fn send_pat_msg(self, msg: wcf::PatMsg) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncSendPatMsg.into(),
-            msg: Some(wcf::request::Msg::Pm(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("发送拍一拍消息命令发送失败: {}", e);
-                return Err("发送拍一拍消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("发送拍一拍消息失败".into());
-            }
-        };
+    pub fn send_pat_msg(self, msg: wcf::PatMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncSendPatMsg, wcf::request::Msg::Pm(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "发送拍一拍消息命令发送失败");
+        process_response!(rsp, Status, 1, "发送拍一拍消息失败")
     }
 
-    pub fn forward_msg(self, msg: wcf::ForwardMsg) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncForwardMsg.into(),
-            msg: Some(wcf::request::Msg::Fm(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("转发消息命令发送失败: {}", e);
-                return Err("转发消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("转发消息失败".into());
-            }
-        };
+    pub fn forward_msg(self, msg: wcf::ForwardMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncForwardMsg, wcf::request::Msg::Fm(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "转发消息命令发送失败");
+        process_response!(rsp, Status, 1, "转发消息失败")
     }
 
     pub fn save_audio(self, am: wcf::AudioMsg) -> Result<String, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncGetAudioMsg.into(),
-            msg: Some(wcf::request::Msg::Am(am)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("保存语音命令发送失败: {}", e);
-                return Err("保存语音命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Str(path) => {
-                return Ok(path);
-            }
-            _ => {
-                return Err("保存语音失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncGetAudioMsg, wcf::request::Msg::Am(am));
+        let rsp = try_cmd!(self.send_cmd(req), "保存语音命令发送失败");
+        process_response!(rsp, Str, "保存语音失败")
     }
 
     pub fn decrypt_image(self, msg: wcf::DecPath) -> Result<String, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncDecryptImage.into(),
-            msg: Some(wcf::request::Msg::Dec(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("解密图片命令发送失败: {}", e);
-                return Err("解密图片命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Str(path) => {
-                return Ok(path);
-            }
-            _ => {
-                return Err("解密图片失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncDecryptImage, wcf::request::Msg::Dec(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "解密图片命令发送失败");
+        process_response!(rsp, Str, "解密图片失败")
     }
 
-    pub fn download_attach(self, msg: wcf::AttachMsg) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncDownloadAttach.into(),
-            msg: Some(wcf::request::Msg::Att(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("下载附件命令发送失败: {}", e);
-                return Err("下载附件命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("下载附件失败".into());
-            }
-        };
+    pub fn download_attach(self, msg: wcf::AttachMsg) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncDownloadAttach, wcf::request::Msg::Att(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "下载附件命令发送失败");
+        process_response!(rsp, Status, 0, "下载附件失败")
     }
 
-    pub fn recv_transfer(self, msg: wcf::Transfer) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncRecvTransfer.into(),
-            msg: Some(wcf::request::Msg::Tf(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("接收转账命令发送失败: {}", e);
-                return Err("接收转账命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("接收转账失败".into());
-            }
-        };
+    pub fn recv_transfer(self, msg: wcf::Transfer) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncRecvTransfer, wcf::request::Msg::Tf(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "接收转账命令发送失败");
+        process_response!(rsp, Status, 1, "接收转账失败")
     }
 
     pub fn query_sql(self, msg: wcf::DbQuery) -> Result<wcf::DbRows, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncExecDbQuery.into(),
-            msg: Some(wcf::request::Msg::Query(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("查询 SQL 命令发送失败: {}", e);
-                return Err("查询 SQL 命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Rows(rows) => {
-                return Ok(rows);
-            }
-            _ => {
-                return Err("查询 SQL 失败".into());
-            }
-        };
+        let req = create_request!(wcf::Functions::FuncExecDbQuery, wcf::request::Msg::Query(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "查询 SQL 命令发送失败");
+        process_response!(rsp, Rows, "查询 SQL 失败")
     }
 
-    pub fn accept_new_friend(self, msg: wcf::Verification) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncAcceptFriend.into(),
-            msg: Some(wcf::request::Msg::V(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("通过好友申请命令发送失败: {}", e);
-                return Err("通过好友申请命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("通过好友申请失败".into());
-            }
-        };
+    pub fn accept_new_friend(self, msg: wcf::Verification) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncAcceptFriend, wcf::request::Msg::V(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "通过好友申请命令发送失败");
+        process_response!(rsp, Status, 1, "通过好友申请失败")
     }
 
-    pub fn add_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncAddRoomMembers.into(),
-            msg: Some(wcf::request::Msg::M(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("添加群成员命令发送失败: {}", e);
-                return Err("添加群成员命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("添加群成员失败".into());
-            }
-        };
+    pub fn add_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncAddRoomMembers, wcf::request::Msg::M(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "添加群成员命令发送失败");
+        process_response!(rsp, Status, 1, "添加群成员失败")
     }
 
-    pub fn invite_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncInvRoomMembers.into(),
-            msg: Some(wcf::request::Msg::M(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("邀请群成员命令发送失败: {}", e);
-                return Err("邀请群成员命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("邀请群成员失败".into());
-            }
-        };
+    pub fn invite_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncInvRoomMembers, wcf::request::Msg::M(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "邀请群成员命令发送失败");
+        process_response!(rsp, Status, 1, "邀请群成员失败")
     }
 
-    pub fn delete_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncDelRoomMembers.into(),
-            msg: Some(wcf::request::Msg::M(msg)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("删除群成员命令发送失败: {}", e);
-                return Err("删除群成员命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("删除群成员失败".into());
-            }
-        };
+    pub fn delete_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncDelRoomMembers, wcf::request::Msg::M(msg));
+        let rsp = try_cmd!(self.send_cmd(req), "删除群成员命令发送失败");
+        process_response!(rsp, Status, 1, "删除群成员失败")
     }
 
-    pub fn revoke_msg(self, id: u64) -> Result<i32, Box<dyn std::error::Error>> {
-        let req = wcf::Request {
-            func: wcf::Functions::FuncRevokeMsg.into(),
-            msg: Some(wcf::request::Msg::Ui64(id)),
-        };
-        let rsp = match self.send_cmd(req) {
-            Ok(res) => res,
-            Err(e) => {
-                error!("撤回消息命令发送失败: {}", e);
-                return Err("撤回消息命令发送失败".into());
-            }
-        };
-
-        match rsp.unwrap() {
-            wcf::response::Msg::Status(status) => {
-                return Ok(status);
-            }
-            _ => {
-                return Err("撤回消息失败".into());
-            }
-        };
+    pub fn revoke_msg(self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
+        let req = create_request!(wcf::Functions::FuncRevokeMsg, wcf::request::Msg::Ui64(id));
+        let rsp = try_cmd!(self.send_cmd(req), "撤回消息命令发送失败");
+        process_response!(rsp, Status, 1, "撤回消息失败")
     }
 }
