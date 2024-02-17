@@ -17,8 +17,6 @@ use std::{
     vec,
 };
 
-// use crate::wcferry::wcf::WxMsg;
-
 const CMD_URL: &'static str = "tcp://127.0.0.1:10086";
 const MSG_URL: &'static str = "tcp://127.0.0.1:10087";
 
