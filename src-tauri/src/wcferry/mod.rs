@@ -36,9 +36,7 @@ impl Default for WeChat {
 
 impl WeChat {
     pub fn new(debug: bool, cburl: String) -> Self {
-        let exe = env::current_dir()
-            .unwrap()
-            .join("src\\wcferry\\lib\\wcf.exe");
+        let exe = env::current_dir().unwrap().join("src\\wcferry\\lib\\wcf.exe");
         let _ = WeChat::start(exe.clone(), debug);
         let cmd_socket = WeChat::connect(&CMD_URL).unwrap();
         let mut wc = WeChat {
@@ -128,10 +126,7 @@ impl WeChat {
         Ok(())
     }
 
-    fn send_cmd(
-        &self,
-        req: wcf::Request,
-    ) -> Result<Option<wcf::response::Msg>, Box<dyn std::error::Error>> {
+    fn send_cmd(&self, req: wcf::Request) -> Result<Option<wcf::response::Msg>, Box<dyn std::error::Error>> {
         let mut buf = Vec::with_capacity(req.encoded_len());
         match req.encode(&mut buf) {
             Ok(()) => (),
@@ -746,10 +741,7 @@ impl WeChat {
         };
     }
 
-    pub fn accept_new_friend(
-        self,
-        msg: wcf::Verification,
-    ) -> Result<i32, Box<dyn std::error::Error>> {
+    pub fn accept_new_friend(self, msg: wcf::Verification) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncAcceptFriend.into(),
             msg: Some(wcf::request::Msg::V(msg)),
@@ -772,10 +764,7 @@ impl WeChat {
         };
     }
 
-    pub fn add_chatroom_member(
-        self,
-        msg: wcf::MemberMgmt,
-    ) -> Result<i32, Box<dyn std::error::Error>> {
+    pub fn add_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncAddRoomMembers.into(),
             msg: Some(wcf::request::Msg::M(msg)),
@@ -798,10 +787,7 @@ impl WeChat {
         };
     }
 
-    pub fn invite_chatroom_member(
-        self,
-        msg: wcf::MemberMgmt,
-    ) -> Result<i32, Box<dyn std::error::Error>> {
+    pub fn invite_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncInvRoomMembers.into(),
             msg: Some(wcf::request::Msg::M(msg)),
@@ -824,10 +810,7 @@ impl WeChat {
         };
     }
 
-    pub fn delete_chatroom_member(
-        self,
-        msg: wcf::MemberMgmt,
-    ) -> Result<i32, Box<dyn std::error::Error>> {
+    pub fn delete_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<i32, Box<dyn std::error::Error>> {
         let req = wcf::Request {
             func: wcf::Functions::FuncDelRoomMembers.into(),
             msg: Some(wcf::request::Msg::M(msg)),

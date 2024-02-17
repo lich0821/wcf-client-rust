@@ -182,11 +182,7 @@ fn main() {
         .manage(Arc::new(Mutex::new(AppState {
             http_server: HttpServer::new(),
         })))
-        .invoke_handler(tauri::generate_handler![
-            start_server,
-            stop_server,
-            confirm_exit
-        ]);
+        .invoke_handler(tauri::generate_handler![start_server, stop_server, confirm_exit]);
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -36,10 +36,7 @@ impl HttpServer {
         self.shutdown_tx = Some(shutdown_tx);
         debug!(
             "HTTP server started at http://{}:{}",
-            host.iter()
-                .map(|b| b.to_string())
-                .collect::<Vec<_>>()
-                .join("."),
+            host.iter().map(|b| b.to_string()).collect::<Vec<_>>().join("."),
             port
         );
 

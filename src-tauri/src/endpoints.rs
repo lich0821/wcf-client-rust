@@ -17,9 +17,8 @@ use warp::{
 
 use crate::wcferry::{
     wcf::{
-        AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath, ForwardMsg, MemberMgmt,
-        MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
-        Verification,
+        AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath, ForwardMsg, MemberMgmt, MsgTypes, PatMsg,
+        PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo, Verification,
     },
     WeChat,
 };
@@ -84,9 +83,7 @@ pub struct NewRow {
     pub fields: Vec<NewField>,
 }
 
-pub fn get_routes(
-    wechat: Arc<Mutex<WeChat>>,
-) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+pub fn get_routes(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     let config = Arc::new(Config::from("/api-doc.json"));
 
     #[derive(OpenApi)]
@@ -116,74 +113,56 @@ pub fn get_routes(
         .and(warp::any().map(move || config.clone()))
         .and_then(serve_swagger);
 
-    fn islogin(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn islogin(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path("islogin")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(is_login)
     }
 
-    fn selfwxid(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn selfwxid(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path("selfwxid")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(get_self_wxid)
     }
 
-    fn userinfo(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn userinfo(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path("userinfo")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(get_user_info)
     }
 
-    fn contacts(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn contacts(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path("contacts")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(get_contacts)
     }
 
-    fn dbs(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn dbs(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path("dbs")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(get_dbs)
     }
 
-    fn tables(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn tables(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!(String / "tables")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(get_tables)
     }
 
-    fn msgtypes(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn msgtypes(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("msg-types")
             .and(warp::any().map(move || wechat.clone()))
             .and_then(get_msg_types)
     }
 
-    fn pyq(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn pyq(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("pyq")
             .and(warp::query::<Id>())
             .and(warp::any().map(move || wechat.clone()))
             .and_then(refresh_pyq)
     }
 
-    fn sendtext(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn sendtext(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("text")
             .and(warp::post())
             .and(warp::body::json())
@@ -191,9 +170,7 @@ pub fn get_routes(
             .and_then(send_text)
     }
 
-    fn sendimage(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn sendimage(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("image")
             .and(warp::post())
             .and(warp::body::json())
@@ -201,9 +178,7 @@ pub fn get_routes(
             .and_then(send_image)
     }
 
-    fn sendfile(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn sendfile(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("file")
             .and(warp::post())
             .and(warp::body::json())
@@ -211,9 +186,7 @@ pub fn get_routes(
             .and_then(send_file)
     }
 
-    fn sendrichtext(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn sendrichtext(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("rich-text")
             .and(warp::post())
             .and(warp::body::json())
@@ -221,9 +194,7 @@ pub fn get_routes(
             .and_then(send_rich_text)
     }
 
-    fn sendpatmsg(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn sendpatmsg(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("pat")
             .and(warp::post())
             .and(warp::body::json())
@@ -231,9 +202,7 @@ pub fn get_routes(
             .and_then(send_pat_msg)
     }
 
-    fn forwardmsg(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn forwardmsg(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("forward-msg")
             .and(warp::post())
             .and(warp::body::json())
@@ -241,9 +210,7 @@ pub fn get_routes(
             .and_then(forward_msg)
     }
 
-    fn saveaudio(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn saveaudio(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("audio")
             .and(warp::post())
             .and(warp::body::json())
@@ -251,9 +218,7 @@ pub fn get_routes(
             .and_then(save_audio)
     }
 
-    fn saveimage(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn saveimage(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("save-image")
             .and(warp::post())
             .and(warp::body::json())
@@ -261,9 +226,7 @@ pub fn get_routes(
             .and_then(save_image)
     }
 
-    fn recvtransfer(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn recvtransfer(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("receive-transfer")
             .and(warp::post())
             .and(warp::body::json())
@@ -271,9 +234,7 @@ pub fn get_routes(
             .and_then(recv_transfer)
     }
 
-    fn querysql(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn querysql(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("sql")
             .and(warp::post())
             .and(warp::body::json())
@@ -281,9 +242,7 @@ pub fn get_routes(
             .and_then(query_sql)
     }
 
-    fn acceptnewfriend(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn acceptnewfriend(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("accept-new-friend")
             .and(warp::post())
             .and(warp::body::json())
@@ -321,9 +280,7 @@ pub fn get_routes(
             .and_then(delete_chatroom_member)
     }
 
-    fn revokemsg(
-        wechat: Arc<Mutex<WeChat>>,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    fn revokemsg(wechat: Arc<Mutex<WeChat>>) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::path!("revoke-msg")
             .and(warp::post())
             .and(warp::query::<Id>())
@@ -364,9 +321,7 @@ async fn serve_swagger(
     config: Arc<Config<'static>>,
 ) -> Result<Box<dyn Reply + 'static>, Rejection> {
     if full_path.as_str() == "/swagger" {
-        return Ok(Box::new(warp::redirect::found(Uri::from_static(
-            "/swagger/",
-        ))));
+        return Ok(Box::new(warp::redirect::found(Uri::from_static("/swagger/"))));
     }
 
     let path = tail.as_str();
@@ -902,12 +857,8 @@ pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json,
                     for f in r.fields {
                         let utf8 = String::from_utf8(f.content.clone()).unwrap_or_default();
                         let content: FieldContent = match f.r#type {
-                            1 => utf8
-                                .parse::<i64>()
-                                .map_or(FieldContent::None, FieldContent::Int),
-                            2 => utf8
-                                .parse::<f64>()
-                                .map_or(FieldContent::None, FieldContent::Float),
+                            1 => utf8.parse::<i64>().map_or(FieldContent::None, FieldContent::Int),
+                            2 => utf8.parse::<f64>().map_or(FieldContent::None, FieldContent::Float),
                             3 => FieldContent::Utf8String(utf8),
                             4 => FieldContent::Base64String(encode(&f.content.clone())),
                             _ => FieldContent::None,
@@ -943,10 +894,7 @@ pub async fn query_sql(msg: DbQuery, wechat: Arc<Mutex<WeChat>>) -> Result<Json,
         (status = 200, body = ApiResponseBool, description = "通过好友申请")
     )
 )]
-pub async fn accept_new_friend(
-    msg: Verification,
-    wechat: Arc<Mutex<WeChat>>,
-) -> Result<Json, Infallible> {
+pub async fn accept_new_friend(msg: Verification, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().accept_new_friend(msg) {
         Ok(status) => ApiResponse {
@@ -973,10 +921,7 @@ pub async fn accept_new_friend(
         (status = 200, body = ApiResponseBool, description = "添加群成员")
     )
 )]
-pub async fn add_chatroom_member(
-    msg: MemberMgmt,
-    wechat: Arc<Mutex<WeChat>>,
-) -> Result<Json, Infallible> {
+pub async fn add_chatroom_member(msg: MemberMgmt, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().add_chatroom_member(msg) {
         Ok(status) => ApiResponse {
@@ -1003,10 +948,7 @@ pub async fn add_chatroom_member(
         (status = 200, body = ApiResponseBool, description = "邀请群成员")
     )
 )]
-pub async fn invite_chatroom_member(
-    msg: MemberMgmt,
-    wechat: Arc<Mutex<WeChat>>,
-) -> Result<Json, Infallible> {
+pub async fn invite_chatroom_member(msg: MemberMgmt, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().invite_chatroom_member(msg) {
         Ok(status) => ApiResponse {
@@ -1033,10 +975,7 @@ pub async fn invite_chatroom_member(
         (status = 200, body = ApiResponseBool, description = "删除群成员")
     )
 )]
-pub async fn delete_chatroom_member(
-    msg: MemberMgmt,
-    wechat: Arc<Mutex<WeChat>>,
-) -> Result<Json, Infallible> {
+pub async fn delete_chatroom_member(msg: MemberMgmt, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
     let rsp = match wechat.clone().delete_chatroom_member(msg) {
         Ok(status) => ApiResponse {
