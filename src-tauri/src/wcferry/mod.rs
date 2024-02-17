@@ -200,19 +200,19 @@ impl WeChat {
         execute_wcf_command!(self, Functions::FuncGetSelfWxid, Str, "获取 wxid ")
     }
 
-    pub fn get_user_info(self) -> Result<wcf::UserInfo, Box<dyn std::error::Error>> {
+    pub fn get_user_info(&self) -> Result<wcf::UserInfo, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncGetUserInfo, Ui, "获取用户信息")
     }
 
-    pub fn get_contacts(self) -> Result<wcf::RpcContacts, Box<dyn std::error::Error>> {
+    pub fn get_contacts(&self) -> Result<wcf::RpcContacts, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncGetContacts, Contacts, "获取联系人列表")
     }
 
-    pub fn get_dbs(self) -> Result<wcf::DbNames, Box<dyn std::error::Error>> {
+    pub fn get_dbs(&self) -> Result<wcf::DbNames, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncGetDbNames, Dbs, "获取数据库名称")
     }
 
-    pub fn get_tables(self, db: String) -> Result<wcf::DbTables, Box<dyn std::error::Error>> {
+    pub fn get_tables(&self, db: String) -> Result<wcf::DbTables, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncGetDbTables, ReqMsg::Str(db), Tables, "获取数据表")
     }
 
@@ -336,75 +336,75 @@ impl WeChat {
         };
     }
 
-    pub fn get_msg_types(self) -> Result<wcf::MsgTypes, Box<dyn std::error::Error>> {
+    pub fn get_msg_types(&self) -> Result<wcf::MsgTypes, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncGetMsgTypes, Types, "获取消息类型")
     }
 
-    pub fn refresh_pyq(self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn refresh_pyq(&self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncRefreshPyq, ReqMsg::Ui64(id), Status 0, "刷新朋友圈")
     }
 
-    pub fn send_text(self, text: wcf::TextMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_text(&self, text: wcf::TextMsg) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncSendTxt, ReqMsg::Txt(text), Status 0, "发送文本消息")
     }
 
-    pub fn send_image(self, img: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_image(&self, img: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncSendImg, ReqMsg::File(img), Status 0, "发送图片消息")
     }
 
-    pub fn send_file(self, file: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_file(&self, file: wcf::PathMsg) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncSendFile, ReqMsg::File(file), Status 0, "发送文件消息")
     }
 
-    pub fn send_rich_text(self, msg: wcf::RichText) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_rich_text(&self, msg: wcf::RichText) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncSendRichTxt, ReqMsg::Rt(msg), Status 0, "发送卡片消息")
     }
 
-    pub fn send_pat_msg(self, msg: wcf::PatMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn send_pat_msg(&self, msg: wcf::PatMsg) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncSendPatMsg, ReqMsg::Pm(msg), Status 1, "发送拍一拍消息")
     }
 
-    pub fn forward_msg(self, msg: wcf::ForwardMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn forward_msg(&self, msg: wcf::ForwardMsg) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncForwardMsg, ReqMsg::Fm(msg), Status 1, "转发消息")
     }
 
-    pub fn save_audio(self, am: wcf::AudioMsg) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn save_audio(&self, am: wcf::AudioMsg) -> Result<String, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncGetAudioMsg, ReqMsg::Am(am), Str, "保存语音")
     }
 
-    pub fn decrypt_image(self, msg: wcf::DecPath) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn decrypt_image(&self, msg: wcf::DecPath) -> Result<String, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncDecryptImage, ReqMsg::Dec(msg), Str, "解密图片")
     }
 
-    pub fn download_attach(self, msg: wcf::AttachMsg) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn download_attach(&self, msg: wcf::AttachMsg) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncDownloadAttach, ReqMsg::Att(msg), Status 0, "下载附件")
     }
 
-    pub fn recv_transfer(self, msg: wcf::Transfer) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn recv_transfer(&self, msg: wcf::Transfer) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncRecvTransfer, ReqMsg::Tf(msg), Status 1, "接收转账")
     }
 
-    pub fn query_sql(self, msg: wcf::DbQuery) -> Result<wcf::DbRows, Box<dyn std::error::Error>> {
+    pub fn query_sql(&self, msg: wcf::DbQuery) -> Result<wcf::DbRows, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncExecDbQuery, ReqMsg::Query(msg), Rows, "查询 SQL ")
     }
 
-    pub fn accept_new_friend(self, msg: wcf::Verification) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn accept_new_friend(&self, msg: wcf::Verification) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncAcceptFriend, ReqMsg::V(msg), Status 1, "通过好友申请")
     }
 
-    pub fn add_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn add_chatroom_member(&self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncAddRoomMembers, ReqMsg::M(msg), Status 1, "添加群成员")
     }
 
-    pub fn invite_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn invite_chatroom_member(&self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncInvRoomMembers, ReqMsg::M(msg), Status 1, "邀请群成员")
     }
 
-    pub fn delete_chatroom_member(self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn delete_chatroom_member(&self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncDelRoomMembers, ReqMsg::M(msg), Status 1, "删除群成员")
     }
 
-    pub fn revoke_msg(self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn revoke_msg(&self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncRevokeMsg, ReqMsg::Ui64(id), Status 1, "撤回消息")
     }
 }
