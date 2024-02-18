@@ -1,7 +1,5 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
-一个基于 WeChatFerry 的 HTTP 客户端。
-
-[🙋 FAQ](https://mp.weixin.qq.com/s/WOw26mKJG8Nq55cT6iG-yA)
+又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/WOw26mKJG8Nq55cT6iG-yA)
 
 <details><summary><font color="#FF0000" size="5">免责声明【必读】</font></summary>
 
@@ -95,12 +93,15 @@ if __name__ == "__main__":
 ```
 
 ## 版本更新
+### v39.0.14.0（2024.02.18）
+* 大量优化
+
+<details><summary>点击查看更多</summary>
+
 ### v39.0.12.4（2024.02.13）
 * 撤回消息
 * 实现单实例
 * 其他功能优化
-
-<details><summary>点击查看更多</summary>
 
 ### v39.0.12.3（2024.02.08）
 * 通过好友申请
@@ -137,7 +138,7 @@ if __name__ == "__main__":
 
 |![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg)|![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg)|
 |:-:|:-:|
-|后台回复 `WeChatFerry` 加群交流|如果你觉得有用|
+|后台回复 `WCF` 加群交流|如果你觉得有用|
 
 ## 一起开发（非开发者不要往下看🛑）
 ### 搭建开发环境
