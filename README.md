@@ -1,5 +1,5 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
-又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/WOw26mKJG8Nq55cT6iG-yA)
+又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/I6n_6fuQa60CrROWSgq0TA)
 
 <details><summary><font color="#FF0000" size="5">免责声明【必读】</font></summary>
 
@@ -17,37 +17,35 @@
 
 <details><summary>点击查看功能清单</summary>
 
-* 检查登录状态
-* 查询登录账号 wxid
+* 查询登录状态
 * 获取登录账号信息
-* 获取通信录
-* 列出所有可查询数据库
-* 查询数据库的表信息
-* 查询消息类型映射表
-* 接收消息
-* 刷新朋友圈
-* 发送文本消息
+* 获取消息类型
+* 获取联系人
+* 获取可查询数据库
+* 获取数据库所有表
+* 获取语音消息
+* 发送文本消息（可 @）
 * 发送图片消息
 * 发送文件消息
 * 发送卡片消息
-* 发送拍一拍消息
+* 拍一拍群友
 * 转发消息
-* 保存语音
-* 下载图片
-* 某功能
-* 查询 SQL
-* 通过好友申请
+* 开启接收消息
+* 关闭接收消息
+* 查询数据库
+* 获取朋友圈消息
+* 下载图片、视频、文件
+* 解密图片
 * 添加群成员
-* 邀请群成员（群人数超过一定数量只能邀请）
 * 删除群成员
-* 撤回消息
+* 邀请群成员
 
 </details>
 
 ## 快速开始
 >ℹ️ 如果跑过机器人，先将机器人停止，然后退出微信，再开始，以避免奇奇怪怪的问题。
 
-* 安装微信 `3.9.2.23`（[这里能找到](https://github.com/lich0821/WeChatFerry/releases/latest)）
+* 安装微信 `3.9.10.27`（[这里能找到](https://github.com/lich0821/WeChatFerry/releases/latest)）
 * 下载 [最新版安装包](https://github.com/lich0821/wcf-client-rust/releases/latest)
 * 安装
 * 运行
@@ -93,10 +91,13 @@ if __name__ == "__main__":
 ```
 
 ## 版本更新
-### v39.0.14.0（2024.02.18）
-* 大量优化
+### v39.2.1.0（2024.03.03）
+* 适配 `3.9.10.27`
 
 <details><summary>点击查看更多</summary>
+
+### v39.0.14.0（2024.02.18）
+* 大量优化
 
 ### v39.0.12.4（2024.02.13）
 * 撤回消息
@@ -140,7 +141,7 @@ if __name__ == "__main__":
 |:-:|:-:|
 |后台回复 `WCF` 加群交流|如果你觉得有用|
 
-## 一起开发（非开发者不要往下看🛑）
+## 一起开发（🚫非开发者不用往下看）
 ### 搭建开发环境
 #### 安装 Rustup
 访问 Rust 官方网站，下载并运行 Rustup 的安装程序。
