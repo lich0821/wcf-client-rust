@@ -34,23 +34,18 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "resources":[
+      "resources": [
         ".\\src\\wcferry\\lib"
       ]
     },
     "security": {
       "csp": null
     },
-    "windows": [
-      {
-        "closable": true,
-        "maximizable": false,
-        "minimizable": false,
-        "resizable": false,
-        "title": "WcfRust",
-        "width": 640,
-        "height": 320
-      }
-    ]
+    "windows": [{
+      "resizable": false,
+      "title": "WcfRust",
+      "width": 640,
+      "height": 320
+    }]
   }
 }

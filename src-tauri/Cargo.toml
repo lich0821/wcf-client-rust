@@ -28,8 +28,12 @@ serde_json = "1"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["blocking", "json"] }
-winapi = { version = "0.3", features = ["errhandlingapi", "winuser", "synchapi"] }
-tauri = { version = "1.5", features = [ "dialog-all", "system-tray", "shell-open"] }
+winapi = { version = "0.3", features = [
+    "errhandlingapi",
+    "winuser",
+    "synchapi",
+] }
+tauri = { version = "1.6.1", features = ["dialog-all", "shell-open", "system-tray"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
