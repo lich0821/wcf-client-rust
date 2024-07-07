@@ -44,6 +44,7 @@ impl Log for FrontendLogger {
 }
 
 struct AppState {
+    http_server_running: bool,
     http_server: HttpServer,
 }
 
@@ -63,7 +64,10 @@ async fn start_server(
 
     {
         let mut app_state = state.inner().lock().unwrap();
-        app_state.http_server.start(host_bytes, port, cburl)?;
+        if !app_state.http_server_running {
+            app_state.http_server.start(host_bytes, port, cburl)?;
+            app_state.http_server_running = true;
+        }
     }
 
     info!("服务启动，监听 http://{}:{}", host, port);
@@ -74,8 +78,20 @@ async fn start_server(
 #[command]
 async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
     {
-        let mut app_state = state.inner().lock().unwrap();
-        app_state.http_server.stop()?;
+        let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+        if app_state.http_server_running {
+            match app_state.http_server.stop() {
+                Ok(()) => {
+                    app_state.http_server_running = false;
+                    ()
+                }
+                Err(e) => {
+                    log::error!("http服务关闭失败 {}", e);
+                }
+            }
+        } else {
+            info!("服务已停止");
+        }
     }
 
     info!("服务停止");
@@ -180,9 +196,14 @@ fn main() {
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
         .manage(Arc::new(Mutex::new(AppState {
+            http_server_running: false,
             http_server: HttpServer::new(),
         })))
-        .invoke_handler(tauri::generate_handler![start_server, stop_server, confirm_exit]);
+        .invoke_handler(tauri::generate_handler![
+            start_server,
+            stop_server,
+            confirm_exit
+        ]);
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");

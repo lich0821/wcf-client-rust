@@ -21,7 +21,7 @@ use crate::wcferry::{
         MsgTypes, PatMsg, PathMsg, RichText, RpcContact, RpcContacts, TextMsg, Transfer, UserInfo,
         Verification,
     },
-    WeChat,
+    SelfInfo, WeChat,
 };
 
 #[macro_export]
@@ -131,7 +131,7 @@ macro_rules! build_route_fn {
 #[derive(Serialize, ToSchema, Clone)]
 #[aliases(ApiResponseBool = ApiResponse<bool>,
     ApiResponseString = ApiResponse<String>,
-    ApiResponseUserInfo = ApiResponse<UserInfo>,
+    ApiResponseUserInfo = ApiResponse<SelfInfo>,
     ApiResponseContacts = ApiResponse<RpcContacts>,
     ApiResponseDbNames = ApiResponse<DbNames>,
     ApiResponseMsgTypes = ApiResponse<MsgTypes>,
@@ -223,7 +223,7 @@ pub fn get_routes(
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
             DecPath, FieldContent, ForwardMsg, Image, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact,
-            RpcContacts, TextMsg, Transfer, UserInfo, Verification, ApiResponse<Member>, Member
+            RpcContacts, TextMsg, Transfer, UserInfo, Verification, ApiResponse<Member>, Member, SelfInfo
         )),
         tags((name = "WCF", description = "玩微信的接口")),
     )]
@@ -757,10 +757,7 @@ pub async fn query_room_member(
     wechat: Arc<Mutex<WeChat>>,
 ) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
-    let resp = match wechat
-        .clone()
-        .query_room_member(format!("{}@chatroom", room_id.room_id))
-    {
+    let resp = match wechat.clone().query_room_member(room_id.room_id.clone()) {
         Ok(members) => match members {
             Some(mbs) => {
                 let mut room_members: Vec<Member> = vec![];
