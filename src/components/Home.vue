@@ -1,0 +1,101 @@
+<template>
+    <el-container>
+        <el-main>
+            <v-ace-editor
+                ref="aceRef"
+                v-model:value="content"
+                lang="text"
+                theme="chrome"
+                :options="options"
+            />
+        </el-main>
+        <el-footer>
+            <el-space>
+                <el-switch
+                    v-model="options.wrap"
+                    size="default"
+                    inline-prompt
+                    style="--el-switch-on-color: #13ce66;"
+                    active-text="自动换行开启"
+                    inactive-text="自动换行关闭"
+                    @change="handleOptionsChange"
+                />
+                <el-button @click="clear">清空</el-button>
+            </el-space>
+            
+        </el-footer>
+    </el-container>
+</template>
+
+<script lang="ts" setup>
+import { onMounted, reactive } from 'vue';
+import { listen } from '@tauri-apps/api/event';
+import { ref } from 'vue';
+import { VAceEditor } from 'vue3-ace-editor';
+import 'ace-builds/src-noconflict/mode-text'; // Load the language definition file used below
+import 'ace-builds/src-noconflict/theme-chrome'; // Load the theme definition file used below
+
+const aceRef: any = ref(null);
+const content = ref('点击【启动】开启Http服务...\n');
+const options: any = ref({
+    useWorker: true, // 启用语法检查,必须为true
+    enableBasicAutocompletion: false, // 自动补全
+    enableLiveAutocompletion: false, // 智能补全
+    enableSnippets: false, // 启用代码段
+    showPrintMargin: false, // 去掉灰色的线，printMarginColumn
+    highlightActiveLine: true, // 高亮行
+    highlightSelectedWord: true, // 高亮选中的字符
+    tabSize: 4, // tab锁进字符
+    fontSize: 14, // 设置字号
+    wrap: false, // 是否换行
+    readonly: true, // 是否可编辑
+});
+
+const appendLogWithLimit = (message: any, maxLines = 9999) => {
+    content.value += message + "\n";
+    let lines = content.value.split("\n");
+    if (lines.length > maxLines) {
+        lines = lines.slice(lines.length - maxLines);
+        content.value = lines.join("\n");
+    }
+    if (!aceRef.value) return;
+    aceRef.value.getAceInstance().renderer.scrollToLine(Number.POSITIVE_INFINITY)
+}
+
+const handleOptionsChange = () => { 
+    if (!aceRef.value) return;
+    aceRef.value.getAceInstance().setOptions(options.value);
+}
+
+const clear = () => {
+    content.value = '';
+ }
+
+onMounted(async () => { 
+    await listen('log-message', (msg) => {
+        appendLogWithLimit(msg.payload);
+    });
+})
+</script>
+
+<style lang="scss" scoped>
+.el-container {
+    padding: 0;
+    height: calc(100vh - var(--header-height));
+
+    >.el-main {
+        padding: 0;
+
+        >div {
+            height: 100%;
+        }
+    }
+
+    >.el-footer {
+        height: calc(var(--header-height) - 1px);
+        border-top: 1px solid var(--el-border-color);
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+</style>

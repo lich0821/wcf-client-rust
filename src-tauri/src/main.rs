@@ -48,6 +48,14 @@ struct AppState {
     http_server: HttpServer,
 }
 
+#[tauri::command]
+async fn is_http_server_running(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+) -> Result<bool, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.http_server_running)
+}
+
 #[command]
 async fn start_server(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
@@ -184,15 +192,15 @@ fn main() {
             init_log(app.app_handle());
             Ok(())
         })
-        .on_window_event(move |event| match event.event() {
-            WindowEvent::CloseRequested { api, .. } => {
-                api.prevent_close();
-                if let Some(window) = event.window().get_window("main") {
-                    window.hide().unwrap();
-                }
-            }
-            _ => {}
-        })
+        // .on_window_event(move |event| match event.event() {
+        //     WindowEvent::CloseRequested { api, .. } => {
+        //         api.prevent_close();
+        //         if let Some(window) = event.window().get_window("main") {
+        //             window.hide().unwrap();
+        //         }
+        //     }
+        //     _ => {}
+        // })
         .system_tray(tray)
         .on_system_tray_event(handle_system_tray_event)
         .manage(Arc::new(Mutex::new(AppState {
@@ -202,7 +210,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             start_server,
             stop_server,
-            confirm_exit
+            confirm_exit,
+            is_http_server_running
         ]);
 
     app.run(tauri::generate_context!())

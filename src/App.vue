@@ -1,0 +1,88 @@
+<template>
+    <el-config-provider>
+        <el-container h="full">
+            <el-header>
+                <BaseHeader />
+            </el-header>
+            <el-main>
+                <router-view v-slot="{ Component }">
+                    <transition name="scale" mode="out-in" appear>
+                        <keep-alive>
+                            <component :is="Component" />
+                        </keep-alive>
+                    </transition>
+                </router-view>
+            </el-main>
+        </el-container>
+    </el-config-provider>
+</template>
+
+<script lang="ts" setup>
+import { ElConfigProvider } from 'element-plus';
+import { listen } from '@tauri-apps/api/event';
+import { onMounted } from 'vue';
+
+onMounted(async () => { 
+    await listen('log-message', (msg) => {
+        console.log(msg);
+    });
+})
+
+</script>
+
+<style lang="scss">
+#app {
+    >section {
+        >header {
+            padding: 0;
+            height: var(--header-height);
+        }
+
+        >main {
+            padding: 0;
+
+            >div {
+                height: calc(100vh - var(--header-height) - 20px)
+            }
+        }
+    }
+}
+
+body {
+    width: 100% !important;
+}
+
+/* 路由切换动画 */
+/* fade-transform */
+.fade-leave-active,
+.fade-enter-active {
+    transition: all 0.5s;
+}
+
+/* 可能为enter失效，拆分为 enter-from和enter-to */
+.fade-enter-from {
+    opacity: 0;
+    transform: translateY(-30px);
+}
+
+.fade-enter-to {
+    opacity: 1;
+    transform: translateY(0px);
+}
+
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.scale-enter-active,
+.scale-leave-active {
+    transition: all 0.5s ease;
+}
+
+.scale-enter-from,
+.scale-leave-to {
+    opacity: 0;
+    transform: scale(0.9);
+}
+</style>
