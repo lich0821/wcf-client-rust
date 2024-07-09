@@ -13,6 +13,15 @@ export const routes = [
         component: () => import('@/components/Home.vue')          
     },
     {
+        path: '/sql',
+        hidden: false,
+        name: 'SQL',
+        meta: {
+            keepAlive: true
+        },
+        component: () => import('@/components/Sql.vue')          
+    },
+    {
         path: '/setting',
         icon: 'material-symbols:settings',
         hidden: false,

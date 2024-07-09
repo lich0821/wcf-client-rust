@@ -93,7 +93,7 @@ class Request {
                 // 直接返回res，当然你也可以只返回res.data
                 // 系统如果有自定义code也可以在这里处理
                 let data = res.data;
-                if (data.code != 0) {
+                if (data.status != 0) {
                     ElMessage({
                         showClose: true,
                         message: `${data.error}`,

@@ -10,7 +10,19 @@ const userinfo = async () => {
     return http.get('/userinfo');
 }
 
+/** 获取所有可查询的数据库 */
+const dbs = async () => { 
+    return http.get('/dbs');
+}
+
+/** 查询数据库下的表信息 */
+const tables = async (db: any) => { 
+    return http.get(`/${db}/tables`);
+}
+
 export default {
     isLogin,
-    userinfo
+    userinfo,
+    dbs,
+    tables
 }

@@ -13,7 +13,7 @@ import { createPinia } from 'pinia';
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs';
 import * as directives from "@/directives";
 import { Splitpanes, Pane } from 'splitpanes';
-import 'splitpanes/dist/splitpanes.css';
+import 'splitpanes/dist/splitpanes.css'
 
 const app = createApp(App);
 // 自定义指令
