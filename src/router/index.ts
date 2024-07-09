@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import NProgress from 'nprogress';
+import NProgress from '@/utils/progress';
 
 export const routes = [
     {
@@ -17,6 +17,9 @@ export const routes = [
         icon: 'material-symbols:settings',
         hidden: false,
         name: '设置',
+        meta: {
+            keepAlive: true
+        },
         component: () => import('@/components/Setting.vue')          
     },
     {

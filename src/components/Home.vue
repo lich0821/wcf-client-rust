@@ -36,7 +36,7 @@ import 'ace-builds/src-noconflict/mode-text'; // Load the language definition fi
 import 'ace-builds/src-noconflict/theme-chrome'; // Load the theme definition file used below
 
 const aceRef: any = ref(null);
-const content = ref('点击【启动】开启Http服务...\n');
+const content = ref('');
 const options: any = ref({
     useWorker: true, // 启用语法检查,必须为true
     enableBasicAutocompletion: false, // 自动补全

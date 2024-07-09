@@ -34,10 +34,10 @@ export default defineConfig({
   server: {
     port: 5555,
     proxy: {
-      "/local": {
-        "target": 'http://localhost:10010/',
+      "/api": {
+        "target": 'http://127.0.0.1:10010/',
         "changeOrigin": true,
-        rewrite: (p) => p.replace(/^\/local/, ""),
+        rewrite: (p) => p.replace(/^\/api/, ""),
       },
     }
   },

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import wcf from '@/command/wcf';
+import wcf_api from '~/api/wcf_api';
 
 export const useWechatStore = defineStore('wechat', {
     state: () => {
@@ -13,9 +14,14 @@ export const useWechatStore = defineStore('wechat', {
             this.selfInfo = selfInfo;
             sessionStorage.setItem('selfInfo', JSON.stringify(selfInfo));
         },
+        async getRunningFlag() { 
+            this.isServerRunning = await wcf.is_http_server_running();
+        },
         async start() { 
             await wcf.start_server('0.0.0.0', 10010, "");
             this.isServerRunning = await wcf.is_http_server_running();
+            this.selfInfo = await wcf_api.userinfo();
+            console.log(this.selfInfo);
         },
         async stop() { 
             await wcf.stop_server();

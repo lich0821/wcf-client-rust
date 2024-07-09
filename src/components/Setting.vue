@@ -1,7 +1,7 @@
 <template>
     <el-container>
         <el-main>
-            Setting
+            
         </el-main>
     </el-container>
 </template>

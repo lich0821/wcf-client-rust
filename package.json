@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@tauri-apps/api": "^1.5.3",
+        "@types/qs": "^6.9.15",
         "@types/splitpanes": "^2.2.6",
         "@vue-js-cron/element-plus": "^3.0.1",
         "ace-builds": "^1.35.2",
@@ -18,7 +19,7 @@
         "element-plus": "^2.7.6",
         "nprogress": "^0.2.0",
         "pinia": "^2.1.7",
-        "qs": "^6.11.2",
+        "qs": "^6.12.2",
         "splitpanes": "^3.1.5",
         "tauri-plugin-log-api": "git+https://github.com/tauri-apps/tauri-plugin-log.git#v1",
         "vue": "^3.3.4",

@@ -32,7 +32,9 @@ const startOrStop = async () => {
     
 }
 
-onMounted(() => {
+onMounted(async () => {
+    const wechatStore = useWechatStore();
+    wechatStore.getRunningFlag();
     const path = location.hash.replace('#', '');
     activeMenu.value = path;
 })
@@ -56,7 +58,6 @@ onMounted(() => {
                 <button class="border-none w-full bg-transparent cursor-pointer" style="height: var(--el-menu-item-height)">
                     <el-text type="success" v-if="!wechatStore.isServerRunning">启动</el-text>
                     <el-text type="danger" v-else>停止</el-text>
-                    <!-- {{ wechatStore.isServerRunning ? '停止' : '启动'}} -->
                 </button>
             </el-menu-item>
             <!-- <el-menu-item v-ripple h="full" @click="toggleDark()">
