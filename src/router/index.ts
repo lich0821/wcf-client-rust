@@ -15,7 +15,7 @@ export const routes = [
     {
         path: '/sql',
         hidden: false,
-        name: 'SQL',
+        name: '数据库',
         meta: {
             keepAlive: true
         },

@@ -16,13 +16,24 @@ const dbs = async () => {
 }
 
 /** 查询数据库下的表信息 */
-const tables = async (db: any) => { 
+const tables = async (db) => { 
     return http.get(`/${db}/tables`);
+}
+
+/** 执行SQL */
+const sql = async (db, sql) => { 
+    return http.post('/sql', {
+        data: {
+            db: db,
+            sql: sql
+        }
+    });
 }
 
 export default {
     isLogin,
     userinfo,
     dbs,
-    tables
+    tables,
+    sql
 }

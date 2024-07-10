@@ -10,6 +10,7 @@ import NProgress from "../progress";
 import { useWechatStore } from "~/store";
 import { RequestMethods } from "./types";
 import { ElMessage } from "element-plus";
+import qs from 'qs';
 
 console.log(import.meta.env.VITE_BASE_URL);
 
@@ -20,13 +21,16 @@ const defaultConfig: AxiosRequestConfig = {
     timeout: 10000,
     headers: {
         Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
+        "Content-Type": "application/json;charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest"
     },
     // 数组格式参数序列化（https://github.com/axios/axios/issues/5142）
     paramsSerializer: {
         serialize: stringify as unknown as CustomParamsSerializer
     }
+    // paramsSerializer: params => { 
+    //     return qs.stringify(params, { indices: false });
+    // }
 };
 
 class Request { 

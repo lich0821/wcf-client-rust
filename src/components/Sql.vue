@@ -1,21 +1,44 @@
 <template>
     <el-container>
+        <el-header>
+            <el-select v-model="selectedDb" style="width: 240px">
+                <el-option
+                    v-for="item in dbOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                />
+            </el-select>
+            <el-button type="success" @click="execSql">执行选择的SQL</el-button>
+        </el-header>
         <el-main>
             <splitpanes class="default-theme">
-                <pane min-size="20" max-size="60" size="20">
+                <pane min-size="2" max-size="80" size="20">
                     <div class="db-container">
                         <el-tree :data="dbTree"/>
                     </div>
-                    
                 </pane>
-                <pane>
-                    <v-ace-editor
-                        ref="aceRef"
-                        v-model:value="content"
-                        lang="sql"
-                        theme="chrome"
-                        :options="options"
-                    />
+                <pane min-size="2" max-size="80" size="80" style="border-left: 1px solid var(--el-border-color)">
+                    <splitpanes horizontal>
+                        <pane min-size="2" max-size="80" size="20" style="border-bottom: 1px solid var(--el-border-color);">
+                            <v-ace-editor
+                                ref="aceRef"
+                                v-model:value="content"
+                                lang="sql"
+                                theme="chrome"
+                                :options="options"
+                            />
+                        </pane>
+                        <pane min-size="2" max-size="80" size="20">
+                            <el-auto-resizer>
+                                <template #default="{ height, width }">
+                                    <el-table :data="results" fit highlight-current-row :style="{width: `${width - 5}px`}" :height="height - 5" border style="margin: 2px;">
+                                        <el-table-column v-for="header in headers" :prop="header" :label="header" show-overflow-tooltip />
+                                    </el-table>
+                                </template>
+                            </el-auto-resizer>
+                        </pane>
+                    </splitpanes>
                 </pane>
             </splitpanes>
         </el-main>
@@ -30,8 +53,12 @@ import 'ace-builds/src-noconflict/mode-sql'; // Load the language definition fil
 import 'ace-builds/src-noconflict/theme-chrome'; // Load the theme definition file used below
 import wcf_api from '~/api/wcf_api';
 
+const selectedDb = ref();
+const dbOptions = ref<any[]>([]);
+const headers = ref<any[]>([]);
+const results = ref<any[]>([]);
 const aceRef: any = ref(null);
-const content = ref('select * from user');
+const content = ref('select * from OpLog limit 10');
 const options: any = ref({
     useWorker: true, // 启用语法检查,必须为true
     //代码提示及自动补全
@@ -48,13 +75,31 @@ const options: any = ref({
 });
 const dbTree = ref<any[]>([]);
 
+const execSql = async () => { 
+    if (!aceRef.value) return;
+    let sql = aceRef.value.getAceInstance().getSelectedText();
+    if (!sql) return;
+    let result = await wcf_api.sql(selectedDb.value, sql);
+    if (result && result.length > 0) { 
+        let item = result[0];
+        headers.value = Object.keys(item);
+        console.log(headers);
+        results.value = result;
+    }
+}
+
 const getDb = async () => { 
     let dbs: any = await wcf_api.dbs();
     console.log(dbs);
     let dbNames = dbs.names;
     let tree: any[] = [];
+    dbOptions.value = [];
     for (let i = 0; i < dbNames.length; i++) { 
         let name = dbNames[i];
+        dbOptions.value.push({
+            label: name,
+            value: name
+        });
         let tableData: any = await wcf_api.tables(name);
         let tables = tableData.tables;
         tree.push({
@@ -68,6 +113,7 @@ const getDb = async () => {
         });
     }
     dbTree.value = tree;
+    selectedDb.value = dbOptions.value.length > 0 ? dbOptions.value[0].value : null;
 }
 
 onMounted(async () => { 
@@ -76,9 +122,24 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+
 .el-container {
     padding: 0;
     height: calc(100vh - var(--header-height));
+
+    :deep(.splitpanes__pane) {
+        display: block;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 5em;
+    }
+
+    >header {
+        height: 35px;
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--el-border-color);
+    }
 
     >.el-main {
         padding: 0;
