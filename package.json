@@ -10,6 +10,7 @@
         "typecheck": "vue-tsc --noEmit"
     },
     "dependencies": {
+        "@imengyu/vue3-context-menu": "^1.4.1",
         "@tauri-apps/api": "^1.5.3",
         "@types/qs": "^6.9.15",
         "@types/splitpanes": "^2.2.6",
@@ -21,10 +22,14 @@
         "pinia": "^2.1.7",
         "qs": "^6.12.2",
         "splitpanes": "^3.1.5",
+        "sql-formatter": "^15.3.2",
         "tauri-plugin-log-api": "git+https://github.com/tauri-apps/tauri-plugin-log.git#v1",
         "vue": "^3.3.4",
+        "vue-clipboard3": "^2.0.0",
         "vue-router": "^4.2.2",
-        "vue3-ace-editor": "^2.2.4"
+        "vue3-ace-editor": "^2.2.4",
+        "vxe-pc-ui": "^4.0.61",
+        "vxe-table": "^4.6.18"
     },
     "devDependencies": {
         "@iconify-json/ep": "^1.1.12",

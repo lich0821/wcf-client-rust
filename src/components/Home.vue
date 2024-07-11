@@ -5,8 +5,8 @@
                 ref="aceRef"
                 v-model:value="content"
                 lang="text"
-                theme="chrome"
                 :options="options"
+                :theme="isDark ? 'monokai' : 'chrome'"
             />
         </el-main>
         <el-footer>
@@ -29,6 +29,7 @@
 
 <script lang="ts" setup>
 import { onMounted, reactive } from 'vue';
+import { isDark } from "@/composables";
 import { listen } from '@tauri-apps/api/event';
 import { ref } from 'vue';
 import { VAceEditor } from 'vue3-ace-editor';

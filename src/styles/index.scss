@@ -51,11 +51,17 @@ code {
   --el-menu-horizontal-height: var(--header-height);
 }
 
-.splitpanes__pane {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: Helvetica, Arial, sans-serif;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 5em;
+.splitpanes__splitter {background-color:var(--el-color-primary);position: relative;}
+.splitpanes__splitter:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: opacity 0.4s;
+  background-color: rgba(from var(--el-color-primary-light-9) r g b / 0.85);
+  opacity: 0;
+  z-index: 99;
 }
+.splitpanes__splitter:hover:before {opacity: 1;}
+.splitpanes--vertical > .splitpanes__splitter:before {left: -10px;right: -10px;height: 100%;}
+.splitpanes--horizontal > .splitpanes__splitter:before {top: -10px;bottom: -10px;width: 100%;}

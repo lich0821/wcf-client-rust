@@ -60,11 +60,11 @@ onMounted(async () => {
                     <el-text type="danger" v-else>停止</el-text>
                 </button>
             </el-menu-item>
-            <!-- <el-menu-item v-ripple h="full" @click="toggleDark()">
+            <el-menu-item v-ripple h="full" @click="toggleDark()">
                 <button class="border-none w-full bg-transparent cursor-pointer" style="height: var(--el-menu-item-height)">
                     <i inline-flex i="dark:ep-moon ep-sunny" />
                 </button>
-            </el-menu-item> -->
+            </el-menu-item>
         </el-menu>
     </div>
 </template>
