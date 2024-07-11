@@ -1,14 +1,17 @@
 <template>
     <el-container>
         <el-header>
-            <el-select v-model="selectedDb" style="width: 240px">
-                <el-option
-                    v-for="item in dbOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                />
-            </el-select>
+            <el-space>
+                <el-select v-model="selectedDb" style="width: 240px">
+                    <el-option
+                        v-for="item in dbOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                    />
+                </el-select>
+                <el-button @click="getDb">刷新数据库</el-button>
+            </el-space>
             <el-button type="success" @click="execSql">执行选择的SQL</el-button>
         </el-header>
         <el-main>
@@ -113,7 +116,9 @@ const getDb = async () => {
         });
     }
     dbTree.value = tree;
-    selectedDb.value = dbOptions.value.length > 0 ? dbOptions.value[0].value : null;
+    if (!selectedDb.value) { 
+        selectedDb.value = dbOptions.value.length > 0 ? dbOptions.value[0].value : null;
+    }
 }
 
 onMounted(async () => { 
