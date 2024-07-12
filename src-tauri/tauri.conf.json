@@ -17,9 +17,18 @@
       "iconAsTemplate": true
     },
     "allowlist": {
-      "all": false,
+      "all": true,
       "dialog": {
         "all": true
+      },
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["http://**", "https://**"]
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": ["**"]
       },
       "shell": {
         "all": false,
@@ -37,13 +46,20 @@
       ],
       "resources": [
         ".\\src\\wcferry\\lib"
-      ]
+      ],
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": "",
+        "wix": {
+          "language": ["zh-CN"]
+        }
+      }
     },
     "security": {
       "csp": null
     },
     "windows": [{
-      "maximized": false,
       "fullscreen": false,
       "minHeight": 800,
       "resizable": true,

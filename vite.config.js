@@ -33,13 +33,16 @@ export default defineConfig({
   },
   server: {
     port: 5555,
-    proxy: {
-      "/api": {
-        "target": 'http://127.0.0.1:10010/',
-        "changeOrigin": true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
-      },
-    }
+    // proxy: {
+    //   "/api": {
+    //     "target": 'http://127.0.0.1:10010/',
+    //     "changeOrigin": true,
+    //     rewrite: (p) => p.replace(/^\/api/, ""),
+    //   },
+    // }
+  },
+  build: {
+    target: ['edge90', 'chrome90', 'firefox90', 'safari15'],
   },
   plugins: [
     vue(),

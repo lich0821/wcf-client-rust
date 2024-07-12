@@ -10,20 +10,22 @@ import NProgress from "../progress";
 import { useWechatStore } from "~/store";
 import { RequestMethods } from "./types";
 import { ElMessage } from "element-plus";
-import qs from 'qs';
-
-console.log(import.meta.env.VITE_BASE_URL);
+import axiosTauriApiAdapter from 'axios-tauri-api-adapter';
+import wcf from "~/command/wcf";
 
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
-    baseURL: import.meta.env.VITE_BASE_URL,
+    baseURL: 'http://' + (await (async () => { 
+        return await wcf.ip();
+    })()) + ':10010',
+    adapter: axiosTauriApiAdapter,
     // 请求超时时间
     timeout: 10000,
-    headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json;charset=UTF-8",
-        "X-Requested-With": "XMLHttpRequest"
-    },
+    // headers: {
+    //     Accept: "application/json, text/plain, */*",
+    //     "Content-Type": "application/json;charset=UTF-8",
+    //     "X-Requested-With": "XMLHttpRequest"
+    // },
     // 数组格式参数序列化（https://github.com/axios/axios/issues/5142）
     paramsSerializer: {
         serialize: stringify as unknown as CustomParamsSerializer

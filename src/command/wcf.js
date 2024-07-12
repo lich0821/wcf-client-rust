@@ -1,5 +1,9 @@
 import { tauri, event } from '@tauri-apps/api';
 
+/** 获取内网IP */
+async function ip() { 
+  return await tauri.invoke('ip');
+}
 
 /** 开启服务 */
 async function start_server(host, port, cburl) { 
@@ -22,6 +26,7 @@ async function exit() {
 }
 
 export default {
+    ip,
     start_server,
     stop_server,
     is_http_server_running,
