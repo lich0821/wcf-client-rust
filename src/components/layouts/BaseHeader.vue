@@ -4,7 +4,7 @@ import { onMounted, ref } from "vue";
 import { routes } from '@/router';
 import { useWechatStore } from "~/store";
 import { ElLoading, ElMessage } from "element-plus";
- import { VxeUI } from 'vxe-table'
+import { VxeUI } from 'vxe-table'
 
 const wechatStore = useWechatStore();
 const activeMenu = ref<string>('/');

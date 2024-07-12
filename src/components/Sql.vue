@@ -82,7 +82,8 @@ import 'ace-builds/src-noconflict/theme-chrome'; // Load the theme definition fi
 import 'ace-builds/src-noconflict/ext-language_tools';
 import wcf_api from '~/api/wcf_api';
 import { format } from 'sql-formatter';
-import useClipboard from 'vue-clipboard3'
+import useClipboard from 'vue-clipboard3';
+import { VxeUI } from 'vxe-table';
 
 const toolbarRef = ref()
 const tableRef = ref()
@@ -132,7 +133,7 @@ const execCurrentLine = async () => {
     let result = await wcf_api.sql(selectedDb.value, currentLine);
     if (result && result.length > 0) {
         let item = result[0];
-        headers.value = Object.keys(item);
+        headers.value = Object.keys(item).sort();
         results.value = result;
     }
 }
@@ -147,7 +148,7 @@ const execSql = async () => {
     let result = await wcf_api.sql(selectedDb.value, sql);
     if (result && result.length > 0) { 
         let item = result[0];
-        headers.value = Object.keys(item);
+        headers.value = Object.keys(item).sort();
         results.value = result;
     }
 }
@@ -240,6 +241,7 @@ onMounted(async () => {
     if ($table && $toolbar) {
         $table.connect($toolbar)
     }
+    VxeUI.setTheme(isDark.value ? 'dark' : 'light');
     await getDb();
     
 })

@@ -16,8 +16,14 @@ async function is_http_server_running() {
     return await tauri.invoke('is_http_server_running', {});
 }
 
+/** 退出 */
+async function exit() { 
+  await tauri.invoke('confirm_exit');
+}
+
 export default {
     start_server,
     stop_server,
-    is_http_server_running
+    is_http_server_running,
+    exit
 }

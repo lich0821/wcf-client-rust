@@ -52,6 +52,9 @@ ace.config.setModuleUrl('ace/snippets/javascript', snippetsYamlUrl);
 import snippetsJsonUrl from 'ace-builds/src-noconflict/snippets/json?url';
 ace.config.setModuleUrl('ace/snippets/json', snippetsJsonUrl);
 
+import extSearchboxUrl from 'ace-builds/src-noconflict/ext-searchbox?url';
+ace.config.setModuleUrl('ace/ext/searchbox', extSearchboxUrl);
+
 import 'ace-builds/src-noconflict/ext-language_tools';
 ace.require("ace/ext/language_tools");
 

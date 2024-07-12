@@ -21,10 +21,22 @@
 import { ElConfigProvider } from 'element-plus';
 import { listen } from '@tauri-apps/api/event';
 import { onMounted } from 'vue';
+import { confirm } from '@tauri-apps/api/dialog';
+import wcf from './command/wcf';
+
+const confirmExit = async () => { 
+    const shouldExit = await confirm("退出将无法使用服务，确定要退出吗？");
+    if (shouldExit) {
+        await wcf.exit();
+    }
+}
 
 onMounted(async () => { 
     await listen('log-message', (msg) => {
         console.log(msg);
+    });
+    await listen('request-exit', () => {
+        confirmExit();
     });
 })
 
