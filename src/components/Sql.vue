@@ -57,8 +57,8 @@
                             <el-auto-resizer>
                                 <template #default="{ height, width }">
                                     <vxe-toolbar ref="toolbarRef" custom></vxe-toolbar>
-                                    <vxe-table ref="tableRef" :data="results" :column-config="{ resizable: true }" :style="{width: `${width - 10}px`}" :height="height - 60" show-header-overflow border style="margin: 5px;">
-                                        <vxe-column v-for="header in headers" :field="header" :title="header" show-overflow>
+                                    <vxe-table ref="tableRef" :data="results" :column-config="{ resizable: true }" :height="height - 60" show-header-overflow border style="margin: 5px;">
+                                        <vxe-column v-for="header in headers" :field="header" :title="header" show-overflow min-width="60" width="120">
                                         </vxe-column>
                                     </vxe-table>
                                 </template>
@@ -108,11 +108,16 @@ const options: any = ref({
 });
 const tableNames = ref<any[]>([]);
 const currentDbTables = ref<any[]>([]);
-const clickRow = ref();
-const clickColumn = ref();
 
 const formatSql = () => { 
-    content.value = format(content.value, {language: 'sqlite'})
+    if (!aceRef.value) return;
+    let instance = aceRef.value.getAceInstance();
+    let selected = instance.getSelectedText();
+    if (selected) {
+        instance.session.replace(instance.selection.getRange(), format(selected, {language: 'sqlite'}));
+    } else { 
+        content.value = format(content.value, {language: 'sqlite'})
+    }
 }
 
 const execCurrentLine = async () => { 

@@ -1,16 +1,21 @@
 <script lang="ts" setup>
-import { toggleDark } from "@/composables";
+import { isDark, toggleDark } from "@/composables";
 import { onMounted, ref } from "vue";
 import { routes } from '@/router';
-import { Icon } from '@iconify/vue';
 import { useWechatStore } from "~/store";
 import { ElLoading, ElMessage } from "element-plus";
+ import { VxeUI } from 'vxe-table'
 
 const wechatStore = useWechatStore();
 const activeMenu = ref<string>('/');
 
 const handleMenuItemClick = (path: string) => {
     activeMenu.value = path;
+}
+
+const switchTheme = () => { 
+    VxeUI.setTheme(isDark.value ? 'light' : 'dark');
+    toggleDark();    
 }
 
 const startOrStop = async () => { 
@@ -60,7 +65,7 @@ onMounted(async () => {
                     <el-text type="danger" v-else>停止</el-text>
                 </button>
             </el-menu-item>
-            <el-menu-item v-ripple h="full" @click="toggleDark()">
+            <el-menu-item v-ripple h="full" @click="switchTheme()">
                 <button class="border-none w-full bg-transparent cursor-pointer" style="height: var(--el-menu-item-height)">
                     <i inline-flex i="dark:ep-moon ep-sunny" />
                 </button>

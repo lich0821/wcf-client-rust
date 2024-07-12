@@ -7,12 +7,17 @@ export const useWechatStore = defineStore('wechat', {
         return {
             selfInfo: getSlefInfo(),
             isServerRunning: false,
+            cburl: localStorage.getItem('cburl'),
         }
     },
     actions: {
         setSelfInfo(selfInfo: any) {
             this.selfInfo = selfInfo;
             sessionStorage.setItem('selfInfo', JSON.stringify(selfInfo));
+        },
+        setCburl(url: any) { 
+            this.cburl = url;
+            sessionStorage.setItem('cburl', JSON.stringify(url));
         },
         async getRunningFlag() { 
             this.isServerRunning = await wcf.is_http_server_running();
