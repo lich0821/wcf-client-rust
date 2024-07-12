@@ -26,6 +26,7 @@
                 <el-button @click="getDb">刷新数据库</el-button>
             </el-space>
             <el-space>
+                <el-button type="success" @click="execCurrentLine">执行当前行</el-button>
                 <el-button type="success" @click="execSql">执行选择的SQL</el-button>
                 <el-button @click="formatSql">格式化</el-button>
             </el-space>
@@ -114,17 +115,34 @@ const formatSql = () => {
     content.value = format(content.value, {language: 'sqlite'})
 }
 
+const execCurrentLine = async () => { 
+    if (!aceRef.value) return;
+    let instance = aceRef.value.getAceInstance();
+    let cursorPosition = instance.getCursorPosition();
+    let currentRow = cursorPosition.row;
+    let currentLine = instance.session.getLine(currentRow);
+    if (!currentLine) return;
+    headers.value = [];
+    results.value = [];
+    let result = await wcf_api.sql(selectedDb.value, currentLine);
+    if (result && result.length > 0) {
+        let item = result[0];
+        headers.value = Object.keys(item);
+        results.value = result;
+    }
+}
+
 const execSql = async () => { 
     if (!aceRef.value) return;
     let instance = aceRef.value.getAceInstance();
     let sql = instance.getSelectedText();
     if (!sql) return;
+    headers.value = [];
     results.value = [];
     let result = await wcf_api.sql(selectedDb.value, sql);
     if (result && result.length > 0) { 
         let item = result[0];
         headers.value = Object.keys(item);
-        console.log(headers);
         results.value = result;
     }
 }
@@ -212,12 +230,13 @@ const rightClick = async (row: any, column: any, e: MouseEvent) => {
 }
 
 onMounted(async () => { 
-    await getDb();
     const $table = tableRef.value
     const $toolbar = toolbarRef.value
     if ($table && $toolbar) {
         $table.connect($toolbar)
     }
+    await getDb();
+    
 })
 </script>
 
@@ -265,7 +284,7 @@ onMounted(async () => {
         }
 
         .vxe-toolbar {
-            padding: 5px 0 0 0;
+            padding: 5px 10px 0 10px;
         }
     }
 
