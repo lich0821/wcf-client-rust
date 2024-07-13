@@ -1,6 +1,6 @@
 [package]
 name = "wcfrust"
-version = "39.2.2"
+version = "39.2.4"
 description = "A HTTP (Rust) client for WeChatFerry"
 authors = ["Changhua"]
 license = "MIT"

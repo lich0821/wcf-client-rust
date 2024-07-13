@@ -1,5 +1,5 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
-又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/I6n_6fuQa60CrROWSgq0TA)
+又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/-HPeBm4SheFteWrXPulTjA)
 
 <details><summary><font color="#FF0000" size="5">免责声明【必读】</font></summary>
 
@@ -41,6 +41,10 @@
 * 邀请群成员
 
 </details>
+
+|![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg)|![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg)|
+|:-:|:-:|
+|后台回复 `WCF` 加群交流|如果你觉得有用|
 
 ## 快速开始
 >ℹ️ 如果跑过机器人，先将机器人停止，然后退出微信，再开始，以避免奇奇怪怪的问题。
@@ -91,21 +95,9 @@ if __name__ == "__main__":
 ```
 
 ## 版本更新
-### v39.2.2.0（2024.03.03）
+### v39.2.4.0（2024.07.13）
 
-* 升级至 v39.2.2
-
-<details><summary>点击查看更多</summary>
-
-### v39.2.1.0（2024.03.03）
-
-* 适配 `3.9.10.27`
-
-</details>
-
-|![碲矿](https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg)|![赞赏](https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg)|
-|:-:|:-:|
-|后台回复 `WCF` 加群交流|如果你觉得有用|
+* 升级 WCF 至 v39.2.4
 
 ## 一起开发（🚫非开发者不用往下看）
 ### 搭建开发环境

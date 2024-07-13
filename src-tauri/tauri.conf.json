@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "WeChatFerry",
-    "version": "39.2.2"
+    "version": "39.2.4"
   },
   "tauri": {
     "systemTray": {
