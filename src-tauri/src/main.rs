@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use chrono::Local;
+use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use std::ptr;
 use std::sync::{Arc, Mutex};
@@ -46,6 +47,20 @@ impl Log for FrontendLogger {
 struct AppState {
     http_server_running: bool,
     http_server: HttpServer,
+}
+
+#[tauri::command]
+async fn ip() -> Result<String, String> {
+    let local = local_ip().map_err(|e| e.to_string())?;
+    Ok(String::from(local.to_string()))
+}
+
+#[tauri::command]
+async fn is_http_server_running(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+) -> Result<bool, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.http_server_running)
 }
 
 #[command]
@@ -122,32 +137,32 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
     }
 }
 
-fn init_window(window: tauri::Window) {
-    window.hide().unwrap();
-    if let Ok(Some(monitor)) = window.primary_monitor() {
-        let monitor_size = monitor.size();
-        if let Ok(window_size) = window.outer_size() {
-            let x = (monitor_size.width as i32 - window_size.width as i32) / 2;
-            let y = (monitor_size.height as i32 - window_size.height as i32) / 2;
-            window
-                .set_position(tauri::Position::Logical(tauri::LogicalPosition {
-                    x: x.into(),
-                    y: y.into(),
-                }))
-                .unwrap();
-        } else {
-            let x = (monitor_size.width as i32 - 640) / 2;
-            let y = (monitor_size.height as i32 - 320) / 2;
-            window
-                .set_position(tauri::Position::Logical(tauri::LogicalPosition {
-                    x: x.into(),
-                    y: y.into(),
-                }))
-                .unwrap();
-        }
-    }
-    window.show().unwrap();
-}
+// fn init_window(window: tauri::Window) {
+//     window.hide().unwrap();
+//     if let Ok(Some(monitor)) = window.primary_monitor() {
+//         let monitor_size = monitor.size();
+//         if let Ok(window_size) = window.outer_size() {
+//             let x = (monitor_size.width as i32 - window_size.width as i32) / 2;
+//             let y = (monitor_size.height as i32 - window_size.height as i32) / 2;
+//             window
+//                 .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+//                     x: x.into(),
+//                     y: y.into(),
+//                 }))
+//                 .unwrap();
+//         } else {
+//             let x = (monitor_size.width as i32 - 640) / 2;
+//             let y = (monitor_size.height as i32 - 320) / 2;
+//             window
+//                 .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+//                     x: x.into(),
+//                     y: y.into(),
+//                 }))
+//                 .unwrap();
+//         }
+//     }
+//     window.show().unwrap();
+// }
 
 fn init_log(handle: AppHandle) {
     log::set_boxed_logger(Box::new(FrontendLogger { app_handle: handle }))
@@ -180,8 +195,9 @@ fn main() {
 
     let app = tauri::Builder::default()
         .setup(|app| {
-            init_window(app.get_window("main").unwrap());
+            // init_window(app.get_window("main").unwrap());
             init_log(app.app_handle());
+            // app.get_window("main").unwrap().open_devtools();
             Ok(())
         })
         .on_window_event(move |event| match event.event() {
@@ -202,7 +218,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             start_server,
             stop_server,
-            confirm_exit
+            confirm_exit,
+            is_http_server_running,
+            ip
         ]);
 
     app.run(tauri::generate_context!())

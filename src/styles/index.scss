@@ -1,0 +1,67 @@
+// import dark theme
+@use "element-plus/theme-chalk/src/dark/css-vars.scss" as *;
+
+body {
+  font-family: Inter, system-ui, Avenir, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+a {
+  color: var(--el-color-primary);
+}
+
+code {
+  border-radius: 2px;
+  padding: 2px 4px;
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.unselect {
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+}
+
+.selectable {
+  user-select: text;
+  -moz-user-select: text;
+  -khtml-user-select: text;
+  -webkit-user-select: text;
+  -o-user-select: text;
+}
+
+.op-container {
+  display: flex;
+  justify-content: space-between;
+  height: 32px;
+  line-height: 32px;
+  vertical-align: middle;
+}
+
+:root {
+  --header-height: 42px;
+  --el-menu-horizontal-height: var(--header-height);
+}
+
+.splitpanes__splitter {background-color:var(--el-color-primary);position: relative;}
+.splitpanes__splitter:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: opacity 0.4s;
+  background-color: rgba(from var(--el-color-primary-light-9) r g b / 0.85);
+  opacity: 0;
+  z-index: 99;
+}
+.splitpanes__splitter:hover:before {opacity: 1;}
+.splitpanes--vertical > .splitpanes__splitter:before {left: -10px;right: -10px;height: 100%;}
+.splitpanes--horizontal > .splitpanes__splitter:before {top: -10px;bottom: -10px;width: 100%;}

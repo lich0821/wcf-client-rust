@@ -248,11 +248,6 @@ impl WeChat {
             small_head_url: None,
             big_head_url: None,
         };
-        let sql = String::from(format!(
-            "select * from ContactHeadImgUrl where usrName = '{}'",
-            user_info.wxid
-        ));
-        log::info!("sql: {}", sql);
         let query = wcf::DbQuery {
             db: String::from("MicroMsg.db"),
             sql: String::from(format!(
@@ -268,7 +263,6 @@ impl WeChat {
             "查询用户头像信息"
         );
         let rows = rows_result?.rows;
-        log::info!("rows: {:?}", rows);
         if rows.len() > 0 {
             let row = rows.get(0).expect("头像索引获取失败");
             let fields = &row.fields;
