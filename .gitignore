@@ -17,6 +17,10 @@ node_modules
 dist
 dist-ssr
 *.local
+.*
+!.gitignore
+!.github/
+!.npmrc
 
 # Editor directories and files
 *.suo
