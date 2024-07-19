@@ -33,7 +33,8 @@
         "vue-router": "^4.2.2",
         "vue3-ace-editor": "^2.2.4",
         "vxe-pc-ui": "^4.0.61",
-        "vxe-table": "^4.6.18"
+        "vxe-table": "^4.6.18",
+        "xml-formatter": "^3.6.3"
     },
     "devDependencies": {
         "@iconify-json/ep": "^1.1.12",

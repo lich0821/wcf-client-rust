@@ -24,11 +24,16 @@ declare module 'vue' {
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
+    ElTabPane: typeof import('element-plus/es')['ElTabPane']
+    ElTabs: typeof import('element-plus/es')['ElTabs']
     ElText: typeof import('element-plus/es')['ElText']
     Home: typeof import('./components/Home.vue')['default']
+    JsonFormat: typeof import('./components/tools/JsonFormat.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Setting: typeof import('./components/Setting.vue')['default']
     Sql: typeof import('./components/Sql.vue')['default']
+    Tools: typeof import('./components/Tools.vue')['default']
+    XmlFormat: typeof import('./components/tools/XmlFormat.vue')['default']
   }
 }

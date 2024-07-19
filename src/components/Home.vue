@@ -67,6 +67,8 @@ const confirmCburl = async () => {
 }
 
 const appendLogWithLimit = (message: any, maxLines = 9999) => {
+    if (message.indexOf('NewEvents emitted without explicit RedrawEventsCleared') > -1) return;
+    if (message.indexOf('RedrawEventsCleared emitted without explicit MainEventsCleared') > -1) return;
     content.value += message + "\n";
     let lines = content.value.split("\n");
     if (lines.length > maxLines) {

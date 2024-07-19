@@ -21,6 +21,15 @@ export const routes = [
         },
         component: () => import('@/components/Sql.vue')          
     },
+    {
+        path: '/tools',
+        hidden: false,
+        name: '工具',
+        meta: {
+            keepAlive: true
+        },
+        component: () => import('@/components/Tools.vue')          
+    },
     // {
     //     path: '/setting',
     //     icon: 'material-symbols:settings',

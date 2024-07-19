@@ -361,7 +361,7 @@ impl WeChat {
                                 }
                             }
                         } else {
-                            info!("收到消息:\n{:?}", msg);
+                            info!("收到消息:\n{}", serde_json::to_string(&msg).unwrap());
                         };
                     }
                     Err(e) => {
