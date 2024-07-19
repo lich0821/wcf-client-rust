@@ -137,33 +137,6 @@ fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemT
     }
 }
 
-// fn init_window(window: tauri::Window) {
-//     window.hide().unwrap();
-//     if let Ok(Some(monitor)) = window.primary_monitor() {
-//         let monitor_size = monitor.size();
-//         if let Ok(window_size) = window.outer_size() {
-//             let x = (monitor_size.width as i32 - window_size.width as i32) / 2;
-//             let y = (monitor_size.height as i32 - window_size.height as i32) / 2;
-//             window
-//                 .set_position(tauri::Position::Logical(tauri::LogicalPosition {
-//                     x: x.into(),
-//                     y: y.into(),
-//                 }))
-//                 .unwrap();
-//         } else {
-//             let x = (monitor_size.width as i32 - 640) / 2;
-//             let y = (monitor_size.height as i32 - 320) / 2;
-//             window
-//                 .set_position(tauri::Position::Logical(tauri::LogicalPosition {
-//                     x: x.into(),
-//                     y: y.into(),
-//                 }))
-//                 .unwrap();
-//         }
-//     }
-//     window.show().unwrap();
-// }
-
 fn init_log(handle: AppHandle) {
     log::set_boxed_logger(Box::new(FrontendLogger { app_handle: handle }))
         .map(|()| log::set_max_level(LevelFilter::Info))
