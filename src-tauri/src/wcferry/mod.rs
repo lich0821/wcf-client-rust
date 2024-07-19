@@ -21,6 +21,10 @@ pub mod wcf {
     include!("wcf.rs");
 }
 
+pub mod roomdata {
+    include!("roomdata.rs");
+}
+
 use wcf::{request::Msg as ReqMsg, response::Msg as RspMsg, Functions, WxMsg};
 
 #[macro_export]
@@ -98,6 +102,30 @@ macro_rules! execute_wcf_command {
     }};
 }
 
+pub struct RoomMember {
+    /// 微信ID
+    pub wxid: String,
+    /// 群内昵称
+    pub name: String,
+    pub state: i32,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct SelfInfo {
+    /// 微信ID
+    pub wxid: String,
+    /// 昵称
+    pub name: String,
+    /// 手机号
+    pub mobile: String,
+    /// 文件/图片等父路径
+    pub home: String,
+    /// 小头像
+    pub small_head_url: Option<String>,
+    /// 大头像
+    pub big_head_url: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct WeChat {
     pub dll: Arc<Library>,
@@ -125,7 +153,9 @@ impl Default for WeChat {
 
 impl WeChat {
     pub fn new(debug: bool, cburl: String) -> Self {
-        let dll_path = env::current_dir().unwrap().join("src\\wcferry\\lib\\sdk.dll");
+        let dll_path = env::current_dir()
+            .unwrap()
+            .join("src\\wcferry\\lib\\sdk.dll");
         let dll = unsafe { Library::new(dll_path).unwrap() };
         let _ = WeChat::start(&dll, debug);
         let cmd_socket = WeChat::connect(&CMD_URL).unwrap();
@@ -206,8 +236,52 @@ impl WeChat {
         execute_wcf_command!(self, Functions::FuncGetSelfWxid, Str, "获取 wxid ")
     }
 
-    pub fn get_user_info(&self) -> Result<wcf::UserInfo, Box<dyn std::error::Error>> {
-        execute_wcf_command!(self, Functions::FuncGetUserInfo, Ui, "获取用户信息")
+    pub fn get_user_info(&self) -> Result<SelfInfo, Box<dyn std::error::Error>> {
+        let user_info_result: Result<wcf::UserInfo, Box<dyn std::error::Error>> =
+            execute_wcf_command!(self, Functions::FuncGetUserInfo, Ui, "获取用户信息");
+        let user_info = user_info_result?;
+        let mut self_info = SelfInfo {
+            wxid: user_info.wxid.clone(),
+            name: user_info.name,
+            mobile: user_info.mobile,
+            home: user_info.home,
+            small_head_url: None,
+            big_head_url: None,
+        };
+        let query = wcf::DbQuery {
+            db: String::from("MicroMsg.db"),
+            sql: String::from(format!(
+                "select * from ContactHeadImgUrl where usrName = '{}'",
+                user_info.wxid
+            )),
+        };
+        let rows_result: Result<wcf::DbRows, Box<dyn std::error::Error>> = execute_wcf_command!(
+            self,
+            Functions::FuncExecDbQuery,
+            ReqMsg::Query(query),
+            Rows,
+            "查询用户头像信息"
+        );
+        let rows = rows_result?.rows;
+        if rows.len() > 0 {
+            let row = rows.get(0).expect("头像索引获取失败");
+            let fields = &row.fields;
+            for field in fields.into_iter() {
+                if field.column.eq("smallHeadImgUrl") {
+                    self_info.small_head_url = Some(
+                        String::from_utf8(field.content.clone())
+                            .map_err(|e| format!("微信小头像解析失败: {}", e.to_string()))?,
+                    );
+                } else if field.column.eq("bigHeadImgUrl") {
+                    self_info.big_head_url = Some(
+                        String::from_utf8(field.content.clone())
+                            .map_err(|e| format!("微信大头像解析失败: {}", e.to_string()))?,
+                    );
+                }
+            }
+        }
+
+        Ok(self_info)
     }
 
     pub fn get_contacts(&self) -> Result<wcf::RpcContacts, Box<dyn std::error::Error>> {
@@ -219,7 +293,13 @@ impl WeChat {
     }
 
     pub fn get_tables(&self, db: String) -> Result<wcf::DbTables, Box<dyn std::error::Error>> {
-        execute_wcf_command!(self, Functions::FuncGetDbTables, ReqMsg::Str(db), Tables, "获取数据表")
+        execute_wcf_command!(
+            self,
+            Functions::FuncGetDbTables,
+            ReqMsg::Str(db),
+            Tables,
+            "获取数据表"
+        )
     }
 
     pub fn enable_recv_msg(&mut self, cburl: String) -> Result<bool, Box<dyn std::error::Error>> {
@@ -281,7 +361,7 @@ impl WeChat {
                                 }
                             }
                         } else {
-                            info!("收到消息:\n{:?}", msg);
+                            info!("收到消息:\n{}", serde_json::to_string(&msg).unwrap());
                         };
                     }
                     Err(e) => {
@@ -375,11 +455,23 @@ impl WeChat {
     }
 
     pub fn save_audio(&self, am: wcf::AudioMsg) -> Result<String, Box<dyn std::error::Error>> {
-        execute_wcf_command!(self, Functions::FuncGetAudioMsg, ReqMsg::Am(am), Str, "保存语音")
+        execute_wcf_command!(
+            self,
+            Functions::FuncGetAudioMsg,
+            ReqMsg::Am(am),
+            Str,
+            "保存语音"
+        )
     }
 
     pub fn decrypt_image(&self, msg: wcf::DecPath) -> Result<String, Box<dyn std::error::Error>> {
-        execute_wcf_command!(self, Functions::FuncDecryptImage, ReqMsg::Dec(msg), Str, "解密图片")
+        execute_wcf_command!(
+            self,
+            Functions::FuncDecryptImage,
+            ReqMsg::Dec(msg),
+            Str,
+            "解密图片"
+        )
     }
 
     pub fn download_attach(&self, msg: wcf::AttachMsg) -> Result<bool, Box<dyn std::error::Error>> {
@@ -391,26 +483,85 @@ impl WeChat {
     }
 
     pub fn query_sql(&self, msg: wcf::DbQuery) -> Result<wcf::DbRows, Box<dyn std::error::Error>> {
-        execute_wcf_command!(self, Functions::FuncExecDbQuery, ReqMsg::Query(msg), Rows, "查询 SQL ")
+        execute_wcf_command!(
+            self,
+            Functions::FuncExecDbQuery,
+            ReqMsg::Query(msg),
+            Rows,
+            "查询 SQL "
+        )
     }
 
-    pub fn accept_new_friend(&self, msg: wcf::Verification) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn accept_new_friend(
+        &self,
+        msg: wcf::Verification,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncAcceptFriend, ReqMsg::V(msg), Status 1, "通过好友申请")
     }
 
-    pub fn add_chatroom_member(&self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn add_chatroom_member(
+        &self,
+        msg: wcf::MemberMgmt,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncAddRoomMembers, ReqMsg::M(msg), Status 1, "添加群成员")
     }
 
-    pub fn invite_chatroom_member(&self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn invite_chatroom_member(
+        &self,
+        msg: wcf::MemberMgmt,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncInvRoomMembers, ReqMsg::M(msg), Status 1, "邀请群成员")
     }
 
-    pub fn delete_chatroom_member(&self, msg: wcf::MemberMgmt) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn delete_chatroom_member(
+        &self,
+        msg: wcf::MemberMgmt,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncDelRoomMembers, ReqMsg::M(msg), Status 1, "删除群成员")
     }
 
     pub fn revoke_msg(&self, id: u64) -> Result<bool, Box<dyn std::error::Error>> {
         execute_wcf_command!(self, Functions::FuncRevokeMsg, ReqMsg::Ui64(id), Status 1, "撤回消息")
+    }
+
+    pub fn query_room_member(
+        &self,
+        room_id: String,
+    ) -> Result<Option<Vec<RoomMember>>, Box<dyn std::error::Error>> {
+        let query = wcf::DbQuery {
+            db: String::from("MicroMsg.db"),
+            sql: String::from(format!(
+                "select * from ChatRoom where ChatRoomName = '{}'",
+                room_id.clone()
+            )),
+        };
+        let rows: Result<wcf::DbRows, Box<dyn std::error::Error>> = execute_wcf_command!(
+            self,
+            Functions::FuncExecDbQuery,
+            ReqMsg::Query(query),
+            Rows,
+            "查询群成员"
+        );
+        let db_rows = rows?.rows;
+        if db_rows.len() == 0 {
+            return Ok(None);
+        }
+        let room_row = db_rows.get(0).expect("获取群聊索引失败");
+        let fields = &room_row.fields;
+        for field in fields.into_iter() {
+            if field.column.eq("RoomData") {
+                let room_data = roomdata::RoomData::decode(field.content.as_slice())?;
+                let mut members: Vec<RoomMember> = vec![];
+                for member in room_data.members.into_iter() {
+                    members.push(RoomMember {
+                        wxid: member.wxid,
+                        name: member.name,
+                        state: member.state,
+                    });
+                }
+                return Ok(Some(members));
+            }
+        }
+        Ok(None)
     }
 }
