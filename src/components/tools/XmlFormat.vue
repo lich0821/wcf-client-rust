@@ -46,11 +46,10 @@ const pretty = async () => {
     let instance = aceRef.value.getAceInstance();
     let selected = instance.getSelectedText();
     if (selected) {
-        instance.session.replace(instance.selection.getRange(), xmlFormat(selected.replace(/[\s+\\n]/g, '')));
+        instance.session.replace(instance.selection.getRange(), xmlFormat(selected.replace(/[\\n\\r\\t]/g, '')));
     } else {
         // debugger
-        console.log(content.value.replace(/[\s+\\n]/g, ''));
-        content.value = xmlFormat(content.value.replace(/[\s+\\n]/g, ''));
+        content.value = xmlFormat(content.value.replace(/[\\n\\r\\t]/g, ''));
     }
 }
 
