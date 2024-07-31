@@ -91,4 +91,4 @@ jobs:
         with:
           files: ${{ env.WINDOWS_DIR }}.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.NG_TOKEN }}
