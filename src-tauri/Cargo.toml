@@ -35,6 +35,7 @@ winapi = { version = "0.3", features = [
 ] }
 tauri = { version = "1.6.1", features = ["api-all", "system-tray"] }
 local-ip-address = "0.6.1"
+uuid = { version = "1.2", features = ["v4"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
