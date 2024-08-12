@@ -1,28 +1,3 @@
-use base64::encode;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::convert::Infallible;
-use std::sync::{Arc, Mutex};
-use std::thread::sleep;
-use std::time::Duration;
-use utoipa::{IntoParams, OpenApi, ToSchema};
-use utoipa_swagger_ui::Config;
-use warp::reply::Json;
-use warp::{
-    http::Uri,
-    hyper::{Response, StatusCode},
-    path::{FullPath, Tail},
-    Filter, Rejection, Reply
-};
-use reqwest::get;
-use std::fs::File;
-use std::io::{copy, Cursor};
-use std::path::PathBuf;
-use serde_json::json;
-use log::{debug, error};
-use uuid::Uuid;
-use tokio::fs;
-use tokio::io::AsyncWriteExt;
 use crate::wcferry::{
     wcf::{
         AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables, DecPath, ForwardMsg, MemberMgmt,
@@ -30,6 +5,31 @@ use crate::wcferry::{
         Verification,
     },
     SelfInfo, WeChat,
+};
+use base64::encode;
+use log::{debug, error};
+use reqwest::get;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::collections::HashMap;
+use std::convert::Infallible;
+use std::fs::File;
+use std::io::{copy, Cursor};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::Duration;
+use tokio::fs;
+use tokio::io::AsyncWriteExt;
+use utoipa::{IntoParams, OpenApi, ToSchema};
+use utoipa_swagger_ui::Config;
+use uuid::Uuid;
+use warp::reply::Json;
+use warp::{
+    http::Uri,
+    hyper::{Response, StatusCode},
+    path::{FullPath, Tail},
+    Filter, Rejection, Reply,
 };
 
 #[macro_export]
@@ -179,6 +179,15 @@ pub struct Image {
     timeout: u8,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SaveFile {
+    /// 消息里的 id
+    id: u64,
+    /// 消息里的 extra
+    extra: String,
+    thumb: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, ToSchema)]
 #[serde(untagged)]
 pub enum FieldContent {
@@ -225,7 +234,7 @@ pub fn get_routes(
     #[openapi(
         info(description = "<a href='https://github.com/lich0821/WeChatFerry'>WeChatFerry</a> 一个玩微信的工具。<table align='left'><tbody><tr><td align='center'><img width='160' alt='碲矿' src='https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg'><div align='center' width='200'>后台回复 <code>WCF</code> 加群交流</div></td><td align='center'><img width='160' alt='赞赏' src='https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg'><div align='center' width='200'>如果你觉得有用</div></td><td width='20%'></td><td width='20%'></td><td width='20%'></td></tr></tbody></table>"),
         paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
-            refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,
+            refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,save_file,
             recv_transfer, query_sql, accept_new_friend, add_chatroom_member, invite_chatroom_member,
             delete_chatroom_member, revoke_msg, query_room_member),
         components(schemas(
@@ -264,6 +273,7 @@ pub fn get_routes(
     build_route_fn!(forwardmsg, POST "forward-msg", forward_msg, JSON, wechat);
     build_route_fn!(saveaudio, POST "audio", save_audio, JSON, wechat);
     build_route_fn!(saveimage, POST "save-image", save_image, JSON, wechat);
+    build_route_fn!(savefile, POST "save-file", save_file, JSON, wechat);
     build_route_fn!(recvtransfer, POST "receive-transfer", recv_transfer, JSON, wechat);
     build_route_fn!(querysql, POST "sql", query_sql, JSON, wechat);
     build_route_fn!(acceptnewfriend, POST "accept-new-friend", accept_new_friend, JSON, wechat);
@@ -291,6 +301,7 @@ pub fn get_routes(
         .or(forwardmsg(wechat.clone()))
         .or(saveaudio(wechat.clone()))
         .or(saveimage(wechat.clone()))
+        .or(savefile(wechat.clone()))
         .or(recvtransfer(wechat.clone()))
         .or(querysql(wechat.clone()))
         .or(acceptnewfriend(wechat.clone()))
@@ -486,7 +497,11 @@ pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Js
         debug!("响应状态码: {:?}", response.status());
         if response.status().is_success() {
             debug!("下载图片成功\n");
-            let content_type = response.headers().get("content-type").and_then(|val| val.to_str().ok()).unwrap_or("image/png");
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|val| val.to_str().ok())
+                .unwrap_or("image/png");
             let extension = match content_type {
                 "image/jpeg" => "jpg",
                 "image/png" => "png",
@@ -495,13 +510,14 @@ pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Js
 
             // 使用 UUID 生成唯一的文件名
             let unique_filename = Uuid::new_v4().to_string();
-            let local_image_path = PathBuf::from(format!("C:\\images\\{}.{}", unique_filename, extension));
-            
+            let local_image_path =
+                PathBuf::from(format!("C:\\images\\{}.{}", unique_filename, extension));
+
             // 确保目录存在
             if let Err(e) = fs::create_dir_all(local_image_path.parent().unwrap()).await {
                 debug!("创建目录失败: {:?}", e);
                 return Ok(warp::reply::json(&json!({"error": "创建目录失败"})));
-            }            
+            }
             let mut file = match File::create(&local_image_path) {
                 Ok(f) => f,
                 Err(e) => {
@@ -526,7 +542,6 @@ pub async fn send_image(image: PathMsg, wechat: Arc<Mutex<WeChat>>) -> Result<Js
             }
             debug!("保存图片内容成功, {:?}\n", local_image_path);
             image_path = PathBuf::from(local_image_path);
-            
         } else {
             error!("下载图片失败，状态码: {:?}", response.status());
             return Ok(warp::reply::json(&json!({"error": "下载图片失败"})));
@@ -672,6 +687,48 @@ pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
         };
     }
     return handle_error("下载超时");
+}
+
+/// 保存图片
+#[utoipa::path(
+    post,
+    tag = "WCF",
+    path = "/save-file",
+    request_body = SaveFile,
+    responses(
+        (status = 200, body = ApiResponseString, description = "保存文件(只下周不解密)")
+    )
+)]
+pub async fn save_file(msg: SaveFile, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    let wc = wechat.lock().unwrap();
+    let handle_error = |error_message: &str| -> Result<Json, Infallible> {
+        Ok(warp::reply::json(&ApiResponse::<String> {
+            status: 1,
+            error: Some(error_message.to_string()),
+            data: None,
+        }))
+    };
+
+    let att = AttachMsg {
+        id: msg.id,
+        thumb: msg.thumb.to_string(),
+        extra: msg.extra.clone(),
+    };
+
+    let status = match wc.clone().download_attach(att) {
+        Ok(status) => status,
+        Err(error) => return handle_error(&error.to_string()),
+    };
+
+    if !status {
+        return handle_error("下载失败");
+    }
+
+    return Ok(warp::reply::json(&ApiResponse {
+        status: 0,
+        error: None,
+        data: Some("ok".to_owned()),
+    }));
 }
 
 /// 接收转账
