@@ -16,8 +16,8 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@v4
         with:
-          node-version: '18.20.3'
-      
+          node-version: "18.20.3"
+
       - name: Set up cargo
         uses: actions-rs/toolchain@v1
         with:
@@ -47,7 +47,7 @@ jobs:
         run: cp src-tauri\\target\\release\\bundle\\nsis\\*.exe output\\
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows
           path: output\\*.exe
@@ -78,7 +78,7 @@ jobs:
         run: mkdir -p ${{ env.WINDOWS_DIR }}
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: windows
           path: ${{ env.WINDOWS_DIR }}
