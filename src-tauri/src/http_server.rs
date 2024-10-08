@@ -18,8 +18,8 @@ impl HttpServer {
         }
     }
 
-    pub fn start(&mut self, host: [u8; 4], port: u16, cburl: String) -> Result<(), String> {
-        let wechat = Arc::new(Mutex::new(WeChat::new(true, cburl)));
+    pub fn start(&mut self, host: [u8; 4], port: u16) -> Result<(), String> {
+        let wechat = Arc::new(Mutex::new(WeChat::new(true)));
         self.wechat = Some(wechat.clone());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let addr = (host, port);

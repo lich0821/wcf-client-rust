@@ -2,7 +2,6 @@ use libloading::{Library, Symbol};
 use log::{debug, error, info, warn};
 use nng::options::{Options, RecvTimeout, SendTimeout};
 use prost::Message;
-use reqwest::blocking::Client;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     mpsc::{self, Receiver, SyncSender},
@@ -26,6 +25,8 @@ pub mod roomdata {
 }
 
 use wcf::{request::Msg as ReqMsg, response::Msg as RspMsg, Functions, WxMsg};
+
+use crate::service::{global_service::GLOBAL, message::event_entity::Event};
 
 #[macro_export]
 macro_rules! create_request {
@@ -147,12 +148,12 @@ impl Clone for WeChat {
 
 impl Default for WeChat {
     fn default() -> Self {
-        WeChat::new(false, "".to_string())
+        WeChat::new(false)
     }
 }
 
 impl WeChat {
-    pub fn new(debug: bool, cburl: String) -> Self {
+    pub fn new(debug: bool) -> Self {
         let dll_path = env::current_dir()
             .unwrap()
             .join("src\\wcferry\\lib\\sdk.dll");
@@ -169,7 +170,7 @@ impl WeChat {
         while !wc.clone().is_login().unwrap() {
             sleep(Duration::from_secs(1));
         }
-        let _ = wc.enable_recv_msg(cburl);
+        let _ = wc.enable_recv_msg();
         wc
     }
 
@@ -302,7 +303,7 @@ impl WeChat {
         )
     }
 
-    pub fn enable_recv_msg(&mut self, cburl: String) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn enable_recv_msg(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
         fn listening_msg(wechat: &mut WeChat, tx: SyncSender<wcf::WxMsg>) {
             while wechat.listening.load(Ordering::Relaxed) {
                 match wechat.msg_socket.as_ref().unwrap().recv() {
@@ -341,28 +342,14 @@ impl WeChat {
             let _ = wechat.disable_recv_msg().unwrap();
         }
 
-        fn forward_msg(wechat: &mut WeChat, cburl: String, rx: Receiver<WxMsg>) {
-            let mut cb_client = None;
-            if !cburl.is_empty() {
-                cb_client = Some(Client::new());
-            }
+        fn forward_msg(wechat: &mut WeChat, rx: Receiver<WxMsg>) {
             while wechat.listening.load(Ordering::Relaxed) {
                 match rx.recv() {
                     Ok(msg) => {
-                        if let Some(client) = &cb_client {
-                            match client.post(cburl.clone()).json(&msg).send() {
-                                Ok(rsp) => {
-                                    if !rsp.status().is_success() {
-                                        error!("转发消息失败，状态码: {}", rsp.status().as_str());
-                                    }
-                                }
-                                Err(e) => {
-                                    error!("转发消息失败：{}", e);
-                                }
-                            }
-                        } else {
-                            info!("收到消息:\n{}", serde_json::to_string(&msg).unwrap());
-                        };
+                         // 发送到消息监听器中
+                         let global = GLOBAL.get().unwrap();
+                         let event_bus = global.msg_event_bus.lock().unwrap();
+                         let _ = event_bus.send_message(Event::ClientMessage(msg.clone()));
                     }
                     Err(e) => {
                         error!("消息出队失败: {}", e);
@@ -388,7 +375,7 @@ impl WeChat {
                     let mut wc1 = self.clone();
                     let mut wc2 = self.clone();
                     thread::spawn(move || listening_msg(&mut wc1, tx));
-                    thread::spawn(move || forward_msg(&mut wc2, cburl, rx));
+                    thread::spawn(move || forward_msg(&mut wc2, rx));
                     return Ok(true);
                 } else {
                     error!("启用消息接收失败：{}", status);

@@ -7,7 +7,6 @@ export const useWechatStore = defineStore('wechat', {
         return {
             selfInfo: getSlefInfo(),
             isServerRunning: false,
-            cburl: localStorage.getItem('cburl') || '',
         }
     },
     actions: {
@@ -15,15 +14,11 @@ export const useWechatStore = defineStore('wechat', {
             this.selfInfo = selfInfo;
             sessionStorage.setItem('selfInfo', JSON.stringify(selfInfo));
         },
-        setCburl(url: any) { 
-            this.cburl = url;
-            localStorage.setItem('cburl', url);
-        },
         async getRunningFlag() { 
             this.isServerRunning = await wcf.is_http_server_running();
         },
         async start() { 
-            await wcf.start_server('0.0.0.0', 10010, this.cburl);
+            await wcf.start_server('0.0.0.0', 10010);
             this.isServerRunning = await wcf.is_http_server_running();
             this.selfInfo = await wcf_api.userinfo();
             console.log(this.selfInfo);

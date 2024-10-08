@@ -3,14 +3,18 @@
     "private": true,
     "version": "0.0.1",
     "scripts": {
+        "tauri dev": "cargo tauri dev",
+        "tauri build": "cargo tauri build",
         "dev": "vite --mode dev",
         "prod": "vite --mode prod",
         "build": "vite build --mode prod",
         "generate": "vite-ssg build",
         "preview": "vite preview",
-        "typecheck": "vue-tsc --noEmit"
+        "typecheck": "vue-tsc --noEmit",
+        "i": "npm install"
     },
     "dependencies": {
+        "@element-plus/icons-vue": "^2.3.1",
         "@imengyu/vue3-context-menu": "^1.4.1",
         "@tauri-apps/api": "^1.5.3",
         "@types/qs": "^6.9.15",

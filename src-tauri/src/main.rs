@@ -3,6 +3,10 @@
 use chrono::Local;
 use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
+use service::global_service::{initialize_global, GLOBAL};
+use wechat_config::WechatConfig;
+use std::fs::{self, File};
+use std::io::Write;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use tauri::{command, AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayMenu, WindowEvent};
@@ -18,6 +22,8 @@ use winapi::{
 mod endpoints;
 mod http_server;
 mod wcferry;
+mod service;
+mod wechat_config;
 use http_server::HttpServer;
 
 struct FrontendLogger {
@@ -63,12 +69,51 @@ async fn is_http_server_running(
     Ok(app_state.http_server_running)
 }
 
+
+// 写入配置到文件中
+#[command]
+fn save_wechat_config(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    config: WechatConfig,
+) -> Result<bool, String> {
+    // 定义文件路径
+    let file_path = ".\\config.json5";
+
+    // 尝试创建并写入文件
+    let mut file = File::create(&file_path).map_err(|e| e.to_string())?;
+    let json_str = serde_json::to_string(&config).unwrap();
+    file.write_all(json_str.as_bytes())
+        .map_err(|e| e.to_string())?;
+    let global = GLOBAL.get().unwrap();
+    let mut wechat_config_lock = global.wechat_config.try_lock().unwrap();
+    wechat_config_lock.cburl = config.cburl.clone();
+    wechat_config_lock.wsurl = config.wsurl.clone();
+    wechat_config_lock.file_dir = config.file_dir.clone();
+    info!("Wechat configuration update {:?}", serde_json::to_string(&config));
+    Ok(true)
+}
+
+
+// 读取文件
+#[command]
+fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<WechatConfig, String> {
+    // 获取应用安装目录的路径
+    // let install_dir = resolve_path(&app, ".", None).map_err(|e| e.to_string())?;
+    // 定义文件路径
+    let file_path = ".\\config.json5";
+
+    // 尝试创建并写入文件
+    let file_str = fs::read_to_string(&file_path).unwrap();
+
+    let wechatconfig: WechatConfig = serde_json::from_str(&file_str).unwrap();
+    Ok(wechatconfig)
+}
+
 #[command]
 async fn start_server(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     host: String,
     port: u16,
-    cburl: String,
 ) -> Result<(), String> {
     let host_bytes = host
         .split('.')
@@ -80,7 +125,7 @@ async fn start_server(
     {
         let mut app_state = state.inner().lock().unwrap();
         if !app_state.http_server_running {
-            app_state.http_server.start(host_bytes, port, cburl)?;
+            app_state.http_server.start(host_bytes, port)?;
             app_state.http_server_running = true;
         }
     }
@@ -119,6 +164,8 @@ async fn confirm_exit(app_handle: tauri::AppHandle) {
     std::process::exit(0);
 }
 
+
+
 fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemTrayEvent) {
     match event {
         tauri::SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
@@ -143,7 +190,8 @@ fn init_log(handle: AppHandle) {
         .expect("Failed to initialize logger");
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mutex_name = b"Global\\wcfrust_app_mutex\0";
     unsafe {
         let handle = CreateMutexA(ptr::null_mut(), 0, mutex_name.as_ptr() as *const i8);
@@ -170,6 +218,7 @@ fn main() {
         .setup(|app| {
             // init_window(app.get_window("main").unwrap());
             init_log(app.app_handle());
+            initialize_global();
             // app.get_window("main").unwrap().open_devtools();
             Ok(())
         })
@@ -193,7 +242,9 @@ fn main() {
             stop_server,
             confirm_exit,
             is_http_server_running,
-            ip
+            ip,
+            save_wechat_config,
+            read_wechat_config
         ]);
 
     app.run(tauri::generate_context!())

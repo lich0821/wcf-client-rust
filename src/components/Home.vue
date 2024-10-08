@@ -1,34 +1,15 @@
 <template>
     <el-container>
-        <el-header>
-            <el-space>
-                <el-input v-model="cburl" placeholder="请输入回调接口地址 http:// 或者 https://" class="cburl" size="small"/>
-                <el-button @click="confirmCburl">确认</el-button>
-            </el-space>
-        </el-header>
         <el-main>
-            <v-ace-editor
-                ref="aceRef"
-                v-model:value="content"
-                lang="text"
-                :options="options"
-                :theme="isDark ? 'monokai' : 'chrome'"
-            />
+            <v-ace-editor ref="aceRef" v-model:value="content" lang="text" :options="options"
+                :theme="isDark ? 'monokai' : 'chrome'" />
         </el-main>
         <el-footer>
             <el-space>
-                <el-switch
-                    v-model="options.wrap"
-                    size="default"
-                    inline-prompt
-                    style="--el-switch-on-color: #13ce66;"
-                    active-text="自动换行开启"
-                    inactive-text="自动换行关闭"
-                    @change="handleOptionsChange"
-                />
+                <el-switch v-model="options.wrap" size="default" inline-prompt style="--el-switch-on-color: #13ce66;"
+                    active-text="自动换行开启" inactive-text="自动换行关闭" @change="handleOptionsChange" />
                 <el-button @click="clear">清空</el-button>
             </el-space>
-            
         </el-footer>
     </el-container>
 </template>
@@ -42,11 +23,8 @@ import { VAceEditor } from 'vue3-ace-editor';
 import '@/components/ace/vace.config';
 import 'ace-builds/src-noconflict/mode-text'; // Load the language definition file used below
 import 'ace-builds/src-noconflict/theme-chrome'; // Load the theme definition file used below
-import { useWechatStore } from '~/store';
 
-const wechatStore = useWechatStore();
 const aceRef: any = ref(null);
-const cburl = ref(wechatStore.cburl);
 const content = ref('');
 const options: any = ref({
     useWorker: true, // 启用语法检查,必须为true
@@ -62,10 +40,6 @@ const options: any = ref({
     readonly: true, // 是否可编辑
 });
 
-const confirmCburl = async () => { 
-    wechatStore.setCburl(cburl.value);
-}
-
 const appendLogWithLimit = (message: any, maxLines = 9999) => {
     if (message.indexOf('NewEvents emitted without explicit RedrawEventsCleared') > -1) return;
     if (message.indexOf('RedrawEventsCleared emitted without explicit MainEventsCleared') > -1) return;
@@ -79,16 +53,16 @@ const appendLogWithLimit = (message: any, maxLines = 9999) => {
     aceRef.value.getAceInstance().renderer.scrollToLine(Number.POSITIVE_INFINITY)
 }
 
-const handleOptionsChange = () => { 
+const handleOptionsChange = () => {
     if (!aceRef.value) return;
     aceRef.value.getAceInstance().setOptions(options.value);
 }
 
 const clear = () => {
     content.value = '';
- }
+}
 
-onMounted(async () => { 
+onMounted(async () => {
     await listen('log-message', (msg) => {
         appendLogWithLimit(msg.payload);
     });
@@ -96,7 +70,6 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-
 .cburl {
     width: 500px;
 }

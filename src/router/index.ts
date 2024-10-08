@@ -30,16 +30,16 @@ export const routes = [
         },
         component: () => import('@/components/Tools.vue')          
     },
-    // {
-    //     path: '/setting',
-    //     icon: 'material-symbols:settings',
-    //     hidden: false,
-    //     name: '设置',
-    //     meta: {
-    //         keepAlive: true
-    //     },
-    //     component: () => import('@/components/Setting.vue')          
-    // },
+    {
+        path: '/setting',
+        icon: 'material-symbols:settings',
+        hidden: false,
+        name: '设置',
+        meta: {
+            keepAlive: true
+        },
+        component: () => import('@/components/Setting.vue')          
+    },
     {
         path: '/:pathMatch(.*)*',
         hidden: true,
