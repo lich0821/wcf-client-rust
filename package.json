@@ -3,12 +3,14 @@
     "private": true,
     "version": "0.0.1",
     "scripts": {
+        "tauri dev":"cargo tauri dev",
         "dev": "vite --mode dev",
         "prod": "vite --mode prod",
         "build": "vite build --mode prod",
         "generate": "vite-ssg build",
         "preview": "vite preview",
-        "typecheck": "vue-tsc --noEmit"
+        "typecheck": "vue-tsc --noEmit",
+        "i": "npm install"
     },
     "dependencies": {
         "@imengyu/vue3-context-menu": "^1.4.1",

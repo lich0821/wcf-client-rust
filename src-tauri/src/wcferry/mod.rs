@@ -27,6 +27,8 @@ pub mod roomdata {
 
 use wcf::{request::Msg as ReqMsg, response::Msg as RspMsg, Functions, WxMsg};
 
+use crate::service::{global_service::GLOBAL, message::event_entity::Event};
+
 #[macro_export]
 macro_rules! create_request {
     ($func:expr) => {
@@ -349,6 +351,11 @@ impl WeChat {
             while wechat.listening.load(Ordering::Relaxed) {
                 match rx.recv() {
                     Ok(msg) => {
+                         // 发送到消息监听器中
+                         let global = GLOBAL.get().unwrap();
+                         let event_bus = global.msg_event_bus.lock().unwrap();
+                         let _ = event_bus.send_message(Event::ClientMessage(msg.clone()));
+                         
                         if let Some(client) = &cb_client {
                             match client.post(cburl.clone()).json(&msg).send() {
                                 Ok(rsp) => {
@@ -360,8 +367,6 @@ impl WeChat {
                                     error!("转发消息失败：{}", e);
                                 }
                             }
-                        } else {
-                            info!("收到消息:\n{}", serde_json::to_string(&msg).unwrap());
                         };
                     }
                     Err(e) => {

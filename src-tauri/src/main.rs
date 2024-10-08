@@ -3,6 +3,7 @@
 use chrono::Local;
 use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
+use service::global_service::initialize_global;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use tauri::{command, AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayMenu, WindowEvent};
@@ -18,6 +19,7 @@ use winapi::{
 mod endpoints;
 mod http_server;
 mod wcferry;
+mod service;
 use http_server::HttpServer;
 
 struct FrontendLogger {
@@ -142,8 +144,8 @@ fn init_log(handle: AppHandle) {
         .map(|()| log::set_max_level(LevelFilter::Info))
         .expect("Failed to initialize logger");
 }
-
-fn main() {
+#[tokio::main]
+async fn main() {
     let mutex_name = b"Global\\wcfrust_app_mutex\0";
     unsafe {
         let handle = CreateMutexA(ptr::null_mut(), 0, mutex_name.as_ptr() as *const i8);
@@ -170,6 +172,7 @@ fn main() {
         .setup(|app| {
             // init_window(app.get_window("main").unwrap());
             init_log(app.app_handle());
+            initialize_global();
             // app.get_window("main").unwrap().open_devtools();
             Ok(())
         })
