@@ -4,6 +4,9 @@ use chrono::Local;
 use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use service::global_service::initialize_global;
+use wechat_config::WechatCoinfig;
+use std::fs::{self, File};
+use std::io::Write;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use tauri::{command, AppHandle, CustomMenuItem, Manager, SystemTray, SystemTrayMenu, WindowEvent};
@@ -20,6 +23,7 @@ mod endpoints;
 mod http_server;
 mod wcferry;
 mod service;
+mod wechat_config;
 use http_server::HttpServer;
 
 struct FrontendLogger {
@@ -63,6 +67,40 @@ async fn is_http_server_running(
 ) -> Result<bool, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     Ok(app_state.http_server_running)
+}
+
+
+// 写入配置到文件中
+#[command]
+fn save_wechat_config(
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+    config: WechatCoinfig,
+) -> Result<bool, String> {
+    // 定义文件路径
+    let file_path = ".\\config.json5";
+
+    // 尝试创建并写入文件
+    let mut file = File::create(&file_path).map_err(|e| e.to_string())?;
+    let json_str = serde_json::to_string(&config).unwrap();
+    file.write_all(json_str.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    Ok(true)
+}
+
+// 读取文件
+#[command]
+fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<WechatCoinfig, String> {
+    // 获取应用安装目录的路径
+    // let install_dir = resolve_path(&app, ".", None).map_err(|e| e.to_string())?;
+    // 定义文件路径
+    let file_path = ".\\config.json5";
+
+    // 尝试创建并写入文件
+    let file_str = fs::read_to_string(&file_path).unwrap();
+
+    let wechatconfig: WechatCoinfig = serde_json::from_str(&file_str).unwrap();
+    Ok(wechatconfig)
 }
 
 #[command]
@@ -121,6 +159,8 @@ async fn confirm_exit(app_handle: tauri::AppHandle) {
     std::process::exit(0);
 }
 
+
+
 fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemTrayEvent) {
     match event {
         tauri::SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
@@ -144,6 +184,7 @@ fn init_log(handle: AppHandle) {
         .map(|()| log::set_max_level(LevelFilter::Info))
         .expect("Failed to initialize logger");
 }
+
 #[tokio::main]
 async fn main() {
     let mutex_name = b"Global\\wcfrust_app_mutex\0";
@@ -196,7 +237,9 @@ async fn main() {
             stop_server,
             confirm_exit,
             is_http_server_running,
-            ip
+            ip,
+            save_wechat_config,
+            read_wechat_config
         ]);
 
     app.run(tauri::generate_context!())

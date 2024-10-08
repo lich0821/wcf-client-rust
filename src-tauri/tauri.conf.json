@@ -45,7 +45,9 @@
         "icons/icon.ico"
       ],
       "resources": [
-        ".\\src\\wcferry\\lib"
+        "./src/wcferry/lib", 
+        "./icons", 
+        "./config.json5"
       ],
       "windows": {
         "certificateThumbprint": null,
