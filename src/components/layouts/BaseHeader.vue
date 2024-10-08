@@ -13,14 +13,14 @@ const handleMenuItemClick = (path: string) => {
     activeMenu.value = path;
 }
 
-const switchTheme = () => { 
+const switchTheme = () => {
     VxeUI.setTheme(isDark.value ? 'light' : 'dark');
-    toggleDark();    
+    toggleDark();
 }
 
-const startOrStop = async () => { 
+const startOrStop = async () => {
     const loading = ElLoading.service({
-        text: wechatStore.isServerRunning ? '停止中...': '启动中...'
+        text: wechatStore.isServerRunning ? '停止中...' : '启动中...'
     });
     try {
         if (wechatStore.isServerRunning) {
@@ -28,13 +28,13 @@ const startOrStop = async () => {
         } else {
             await wechatStore.start();
         }
-    } catch (err: any) { 
+    } catch (err: any) {
         console.error(err);
         ElMessage.error(err.message || err);
     } finally {
         loading.close();
     }
-    
+
 }
 
 onMounted(async () => {
@@ -60,16 +60,23 @@ onMounted(async () => {
             </template>
             <div class="flex-grow" />
             <el-menu-item v-ripple h="full" @click="startOrStop()">
-                <button class="border-none w-full bg-transparent cursor-pointer" style="height: var(--el-menu-item-height)">
+                <button class="border-none w-full bg-transparent cursor-pointer"
+                    style="height: var(--el-menu-item-height)">
                     <el-text type="success" v-if="!wechatStore.isServerRunning">启动</el-text>
                     <el-text type="danger" v-else>停止</el-text>
                 </button>
             </el-menu-item>
             <el-menu-item v-ripple h="full" @click="switchTheme()">
-                <button class="border-none w-full bg-transparent cursor-pointer" style="height: var(--el-menu-item-height)">
+                <button class="border-none w-full bg-transparent cursor-pointer"
+                    style="height: var(--el-menu-item-height)">
                     <i inline-flex i="dark:ep-moon ep-sunny" />
                 </button>
             </el-menu-item>
+            <!-- <el-menu-item>
+                <a-link href="https://github.com/lich0821/WeChatFerry" status="success" target="_blank">
+                    <icon-github :style="{ fontSize: '32px' }" />
+                </a-link>
+            </el-menu-item> -->
         </el-menu>
     </div>
 </template>

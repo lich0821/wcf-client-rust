@@ -114,7 +114,6 @@ async fn start_server(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
     host: String,
     port: u16,
-    cburl: String,
 ) -> Result<(), String> {
     let host_bytes = host
         .split('.')
@@ -126,7 +125,7 @@ async fn start_server(
     {
         let mut app_state = state.inner().lock().unwrap();
         if !app_state.http_server_running {
-            app_state.http_server.start(host_bytes, port, cburl)?;
+            app_state.http_server.start(host_bytes, port)?;
             app_state.http_server_running = true;
         }
     }

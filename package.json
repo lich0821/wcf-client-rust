@@ -4,6 +4,7 @@
     "version": "0.0.1",
     "scripts": {
         "tauri dev": "cargo tauri dev",
+        "tauri build": "cargo tauri build",
         "dev": "vite --mode dev",
         "prod": "vite --mode prod",
         "build": "vite build --mode prod",
