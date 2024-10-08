@@ -3,8 +3,8 @@
 use chrono::Local;
 use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
-use service::global_service::initialize_global;
-use wechat_config::WechatCoinfig;
+use service::global_service::{initialize_global, GLOBAL};
+use wechat_config::WechatConfig;
 use std::fs::{self, File};
 use std::io::Write;
 use std::ptr;
@@ -74,7 +74,7 @@ async fn is_http_server_running(
 #[command]
 fn save_wechat_config(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
-    config: WechatCoinfig,
+    config: WechatConfig,
 ) -> Result<bool, String> {
     // 定义文件路径
     let file_path = ".\\config.json5";
@@ -84,13 +84,19 @@ fn save_wechat_config(
     let json_str = serde_json::to_string(&config).unwrap();
     file.write_all(json_str.as_bytes())
         .map_err(|e| e.to_string())?;
-
+    let global = GLOBAL.get().unwrap();
+    let mut wechat_config_lock = global.wechat_config.try_lock().unwrap();
+    wechat_config_lock.cburl = config.cburl.clone();
+    wechat_config_lock.wsurl = config.wsurl.clone();
+    wechat_config_lock.file_dir = config.file_dir.clone();
+    info!("Wechat configuration update {:?}", serde_json::to_string(&config));
     Ok(true)
 }
 
+
 // 读取文件
 #[command]
-fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<WechatCoinfig, String> {
+fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<WechatConfig, String> {
     // 获取应用安装目录的路径
     // let install_dir = resolve_path(&app, ".", None).map_err(|e| e.to_string())?;
     // 定义文件路径
@@ -99,7 +105,7 @@ fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<W
     // 尝试创建并写入文件
     let file_str = fs::read_to_string(&file_path).unwrap();
 
-    let wechatconfig: WechatCoinfig = serde_json::from_str(&file_str).unwrap();
+    let wechatconfig: WechatConfig = serde_json::from_str(&file_str).unwrap();
     Ok(wechatconfig)
 }
 
