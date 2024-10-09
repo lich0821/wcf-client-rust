@@ -91,6 +91,7 @@ fn save_wechat_config(
     wechat_config_lock.wsurl = config.wsurl.clone();
     wechat_config_lock.file_dir = config.file_dir.clone();
     wechat_config_lock.http_server_port = config.http_server_port.clone();
+    wechat_config_lock.front_msg_show = config.front_msg_show.clone();
     info!("Wechat configuration update {:?}", serde_json::to_string(&config));
     Ok(true)
 }

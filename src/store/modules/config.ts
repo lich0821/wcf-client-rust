@@ -11,6 +11,8 @@ export const useConfigStore = defineStore('config', () => {
       wsurl: '',
       // http server配置
       http_server_port: 10010,
+      // 显示消息日志
+      front_msg_show: true,
       file_dir: '',
     });
      

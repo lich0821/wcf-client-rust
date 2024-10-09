@@ -10,4 +10,6 @@ pub struct WechatConfig {
     pub wsurl: String,
     // 本地文件存储路径
     pub file_dir: String,
+    // 前端日志显示
+    pub front_msg_show: bool,
 }
