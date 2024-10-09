@@ -14,7 +14,7 @@ impl EventHandler for HttpMessageHandler {
     async fn handle(&mut self, event: Event) {
         if let Event::ClientMessage(ref msg) = event {
             let global = GLOBAL.get().unwrap();
-            let wechat_config = global.wechat_config.try_lock().unwrap();
+            let wechat_config = global.wechat_config.read().unwrap();
             let cburl = wechat_config.cburl.clone();
             if cburl.is_empty() {
                 return;

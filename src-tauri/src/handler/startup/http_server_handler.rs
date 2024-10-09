@@ -15,10 +15,10 @@ impl EventHandler for HttpServerHandler {
     async fn handle(&mut self, event: Event) {
         
         if let Event::StartUp() = event {
-            info!("HttpServer 启动");
+            info!("HttpServer {} 启动", self.id);
 
             let global = GLOBAL.get().unwrap();
-            let wechat_config = global.wechat_config.try_lock().unwrap();
+            let wechat_config = global.wechat_config.read().unwrap();
             let port = wechat_config.http_server_port;
 
             let host_bytes = "0.0.0.0".to_string()
@@ -37,7 +37,7 @@ impl EventHandler for HttpServerHandler {
         }
         
         if let Event::Shutdown() = event {
-            info!("HttpServer 关闭");
+            info!("HttpServer {} 关闭", self.id);
             if self.http_server_running {
                 match self.http_server.stop() {
                     Ok(()) => {

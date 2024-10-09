@@ -58,7 +58,7 @@ struct AppState {
 #[tauri::command]
 async fn ip() -> Result<String, String> {
     let global = GLOBAL.get().unwrap();
-    let wechat_config = global.wechat_config.lock().unwrap();
+    let wechat_config = global.wechat_config.read().unwrap();
     let local = local_ip().map_err(|e| e.to_string())?;
     Ok(String::from(local.to_string()+ ":" + &wechat_config.http_server_port.to_string()))
 }
@@ -86,7 +86,7 @@ fn save_wechat_config(
     file.write_all(json_str.as_bytes())
         .map_err(|e| e.to_string())?;
     let global = GLOBAL.get().unwrap();
-    let mut wechat_config_lock = global.wechat_config.try_lock().unwrap();
+    let mut wechat_config_lock = global.wechat_config.write().unwrap();
     wechat_config_lock.cburl = config.cburl.clone();
     wechat_config_lock.wsurl = config.wsurl.clone();
     wechat_config_lock.file_dir = config.file_dir.clone();

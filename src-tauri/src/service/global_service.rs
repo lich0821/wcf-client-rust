@@ -1,4 +1,4 @@
-use std::{fs, sync::{Arc, Mutex, OnceLock}};
+use std::{fs, sync::{Arc, Mutex, OnceLock, RwLock}};
 
 use rand::Rng;
 
@@ -7,7 +7,7 @@ use crate::{handler::{message::{http_message_handler::HttpMessageHandler, log_me
 
 // 全局参数结构
 pub struct GlobalState {
-  pub wechat_config: Arc<Mutex<WechatConfig>>,
+  pub wechat_config: RwLock<WechatConfig>,
   pub msg_event_bus: Arc<Mutex<MsgEventBus>>,
   pub startup_event_bus: Arc<Mutex<StartUpEventBus>>,
 }
@@ -64,7 +64,7 @@ pub fn initialize_global() {
   log::info!("-------------------微信消息监听初始化 结束--------------------------------");
 
   let global_state: GlobalState = GlobalState {
-    wechat_config: Arc::new(Mutex::new(wechat_config)),
+    wechat_config: RwLock::new(wechat_config),
     msg_event_bus: Arc::new(Mutex::new(msg_event_bus)),
     startup_event_bus: Arc::new(Mutex::new(startup_event_bus)),
   };

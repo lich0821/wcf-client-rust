@@ -12,7 +12,7 @@ impl EventHandler for LogMessageHandler {
     async fn handle(&mut self, event: Event) {
         if let Event::ClientMessage(ref msg) = event {
             let global = GLOBAL.get().unwrap();
-            let wechat_config = global.wechat_config.try_lock().unwrap();
+            let wechat_config = global.wechat_config.read().unwrap();
             let show = wechat_config.front_msg_show.clone();
             if show {
                 log::info!("日志处理器 {} -- 接收到信息: {:?}", self.id, msg);

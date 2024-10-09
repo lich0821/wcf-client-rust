@@ -35,8 +35,8 @@ const submitForm = async () => {
     <el-container>
         <el-main>
             <el-form ref="formRef" :model="configStore.wechatConfig" label-width="auto" class="demo-dynamic w-full">
-                <el-button type="primary" @click="submitForm()">保存</el-button>
-                <el-card style="w-full">
+                <el-button type="success" size="large" @click="submitForm()">保存</el-button>
+                <el-card class="w-full mt-4">
                     <template #header>http 回调地址</template>
                     <el-form-item>
                         <el-row v-for="(http, index) in configStore.wechatConfig.cburl" :key="index"
@@ -51,7 +51,7 @@ const submitForm = async () => {
                         <el-button @click="addDomain">新增回调</el-button>
                     </el-form-item>
                 </el-card>
-                <el-card style="w-full mt-8">
+                <el-card class="w-full mt-4">
                     <template #header>http server 配置</template>
                     <el-form-item>
                         <el-input-number v-model="configStore.wechatConfig.http_server_port" :min="1" :max="65535" />

@@ -63,10 +63,11 @@
     },
     "windows": [{
       "fullscreen": false,
-      "minHeight": 800,
+      "minHeight": 900,
       "resizable": true,
       "title": "WcfRust",
-      "minWidth": 900
+      "minWidth": 1200,
+      "center" : true
     }]
   }
 }
