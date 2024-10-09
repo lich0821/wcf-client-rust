@@ -6,6 +6,10 @@
         </el-main>
         <el-footer>
             <el-space>
+                <el-switch v-model="configStore.wechatConfig.front_msg_show" size="default" inline-prompt
+                    style="--el-switch-on-color: #13ce66;" active-text="显示消息日志" inactive-text="关闭消息日志"
+                    @change="handleMsgShowEvent" />
+
                 <el-switch v-model="options.wrap" size="default" inline-prompt style="--el-switch-on-color: #13ce66;"
                     active-text="自动换行开启" inactive-text="自动换行关闭" @change="handleOptionsChange" />
                 <el-button @click="clear">清空</el-button>
@@ -23,6 +27,9 @@ import { VAceEditor } from 'vue3-ace-editor';
 import '@/components/ace/vace.config';
 import 'ace-builds/src-noconflict/mode-text'; // Load the language definition file used below
 import 'ace-builds/src-noconflict/theme-chrome'; // Load the theme definition file used below
+import { useConfigStore } from "@/store/modules/config";
+
+const configStore = useConfigStore();
 
 const aceRef: any = ref(null);
 const content = ref('');
@@ -51,6 +58,10 @@ const appendLogWithLimit = (message: any, maxLines = 9999) => {
     }
     if (!aceRef.value) return;
     aceRef.value.getAceInstance().renderer.scrollToLine(Number.POSITIVE_INFINITY)
+}
+
+const handleMsgShowEvent = async () => {
+    const res = await configStore.update();
 }
 
 const handleOptionsChange = () => {

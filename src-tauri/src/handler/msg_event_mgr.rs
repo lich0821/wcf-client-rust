@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::{sync::broadcast, task};
 
-use super::message::event_entity::{Event, EventHandler};
+use super::event_entity::{Event, EventHandler};
 
 pub struct MsgEventBus {
     pub broadcaster: Arc<Mutex<broadcast::Sender<Event>>>,
@@ -15,13 +15,15 @@ impl MsgEventBus {
         }
     }
 
-    pub fn subscribe(&mut self, handler: Arc<dyn EventHandler + Send + Sync>) {
+    pub fn subscribe(&mut self, mut handler: Box<dyn EventHandler + Send + Sync>) {
          let broadcast = self.broadcaster.lock().unwrap();
          let mut rx = broadcast.subscribe();
          task::spawn(async move {
             loop {
               match rx.recv().await {
-                  Ok(msg) => handler.handle(msg).await,
+                  Ok(msg) => {
+                    handler.handle(msg).await
+                  },
                   Err(broadcast::error::RecvError::Closed) => break,
                   Err(broadcast::error::RecvError::Lagged(msg)) => {
                     println!("客户端丢失了消息: {:?}", msg);

@@ -1,10 +1,8 @@
 use async_trait::async_trait;
 
-use crate::service::global_service::GLOBAL;
+use crate::{handler::event_entity::{Event, EventHandler}, service::global_service::GLOBAL};
 
 use serde_json::json;
-
-use super::event_entity::{Event, EventHandler};
 
 /// 配置 http 回调地址后，将调用设置的url，
 pub struct HttpMessageHandler {
@@ -13,11 +11,11 @@ pub struct HttpMessageHandler {
 
 #[async_trait]
 impl EventHandler for HttpMessageHandler {
-    async fn handle(&self, event: Event) {
+    async fn handle(&mut self, event: Event) {
         if let Event::ClientMessage(ref msg) = event {
             let global = GLOBAL.get().unwrap();
-            let k_config = global.wechat_config.try_lock().unwrap();
-            let cburl = k_config.cburl.clone();
+            let wechat_config = global.wechat_config.read().unwrap();
+            let cburl = wechat_config.cburl.clone();
             if cburl.is_empty() {
                 return;
             }

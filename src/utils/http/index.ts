@@ -17,7 +17,7 @@ import wcf from "~/command/wcf";
 const defaultConfig: AxiosRequestConfig = {
     baseURL: 'http://' + (await (async () => { 
         return await wcf.ip();
-    })()) + ':10010',
+    })()),
     adapter: axiosTauriApiAdapter,
     // 请求超时时间
     timeout: 10000,
