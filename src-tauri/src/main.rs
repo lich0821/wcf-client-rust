@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use chrono::Local;
+use handler::event_entity::Event;
 use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use service::global_service::{initialize_global, GLOBAL};
@@ -24,7 +25,7 @@ mod http_server;
 mod wcferry;
 mod service;
 mod wechat_config;
-use http_server::HttpServer;
+mod handler;
 
 struct FrontendLogger {
     app_handle: tauri::AppHandle,
@@ -52,7 +53,6 @@ impl Log for FrontendLogger {
 
 struct AppState {
     http_server_running: bool,
-    http_server: HttpServer,
 }
 
 #[tauri::command]
@@ -73,7 +73,6 @@ async fn is_http_server_running(
 // 写入配置到文件中
 #[command]
 fn save_wechat_config(
-    state: tauri::State<'_, Arc<Mutex<AppState>>>,
     config: WechatConfig,
 ) -> Result<bool, String> {
     // 定义文件路径
@@ -96,7 +95,7 @@ fn save_wechat_config(
 
 // 读取文件
 #[command]
-fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<WechatConfig, String> {
+fn read_wechat_config() -> Result<WechatConfig, String> {
     // 获取应用安装目录的路径
     // let install_dir = resolve_path(&app, ".", None).map_err(|e| e.to_string())?;
     // 定义文件路径
@@ -112,26 +111,19 @@ fn read_wechat_config(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<W
 #[command]
 async fn start_server(
     state: tauri::State<'_, Arc<Mutex<AppState>>>,
-    host: String,
-    port: u16,
+    _host: String,
+    _port: u16,
 ) -> Result<(), String> {
-    let host_bytes = host
-        .split('.')
-        .map(|part| part.parse::<u8>().unwrap_or(0))
-        .collect::<Vec<u8>>()
-        .try_into()
-        .map_err(|_| "Invalid host address".to_string())?;
-
     {
         let mut app_state = state.inner().lock().unwrap();
         if !app_state.http_server_running {
-            app_state.http_server.start(host_bytes, port)?;
-            app_state.http_server_running = true;
+          // 发送到消息监听器中
+          let global = GLOBAL.get().unwrap();
+          let event_bus = global.startup_event_bus.lock().unwrap();
+          let _ = event_bus.send_message(Event::StartUp());
+          app_state.http_server_running = true;
         }
     }
-
-    info!("服务启动，监听 http://{}:{}", host, port);
-    info!("浏览器访问 http://localhost:{}/swagger/ 查看文档", port);
     Ok(())
 }
 
@@ -140,18 +132,15 @@ async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<()
     {
         let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
         if app_state.http_server_running {
-            match app_state.http_server.stop() {
-                Ok(()) => {
-                    app_state.http_server_running = false;
-                    ()
-                }
-                Err(e) => {
-                    log::error!("http服务关闭失败 {}", e);
-                }
-            }
+            let global = GLOBAL.get().unwrap();
+            let event_bus = global.startup_event_bus.lock().unwrap();
+            let _ = event_bus.send_message(Event::Shutdown());
+            app_state.http_server_running = false;
         } else {
             info!("服务已停止");
         }
+
+        
     }
 
     info!("服务停止");
@@ -235,7 +224,6 @@ async fn main() {
         .on_system_tray_event(handle_system_tray_event)
         .manage(Arc::new(Mutex::new(AppState {
             http_server_running: false,
-            http_server: HttpServer::new(),
         })))
         .invoke_handler(tauri::generate_handler![
             start_server,

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import {
     Delete,
@@ -39,11 +39,6 @@ const submitForm = (formEl: FormInstance | undefined) => {
         }
     })
 }
-
-const resetForm = (formEl: FormInstance | undefined) => {
-    if (!formEl) return
-    formEl.resetFields()
-}
 </script>
 
 <template>
@@ -64,7 +59,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
                     <el-form-item>
                         <el-button type="primary" @click="submitForm(formRef)">提交</el-button>
                         <el-button @click="addDomain">新增回调</el-button>
-                        <el-button type="danger" @click="resetForm(formRef)">全部删除</el-button>
                     </el-form-item>
                 </el-form>
             </el-card>

@@ -26,7 +26,7 @@ pub mod roomdata {
 
 use wcf::{request::Msg as ReqMsg, response::Msg as RspMsg, Functions, WxMsg};
 
-use crate::service::{global_service::GLOBAL, message::event_entity::Event};
+use crate::{handler::event_entity::Event, service::global_service::GLOBAL};
 
 #[macro_export]
 macro_rules! create_request {

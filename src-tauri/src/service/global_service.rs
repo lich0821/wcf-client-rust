@@ -2,15 +2,14 @@ use std::{fs, sync::{Arc, Mutex, OnceLock}};
 
 use rand::Rng;
 
-use crate::{service::message::{console_message_handler::ConsoleLogMessageHandler, http_message_handler::HttpMessageHandler, log_message_handler::LogMessageHandler}, wechat_config::WechatConfig};
-
-use super::msg_event_mgr::MsgEventBus;
+use crate::{handler::{message::{http_message_handler::HttpMessageHandler, log_message_handler::LogMessageHandler}, msg_event_mgr::MsgEventBus, startup::http_server_handler::HttpServerHandler, startup_event_mgr::StartUpEventBus}, http_server::HttpServer,  wechat_config::WechatConfig};
 
 
 // 全局参数结构
 pub struct GlobalState {
   pub wechat_config: Arc<Mutex<WechatConfig>>,
   pub msg_event_bus: Arc<Mutex<MsgEventBus>>,
+  pub startup_event_bus: Arc<Mutex<StartUpEventBus>>,
 }
 // 全局变量
 pub static GLOBAL: OnceLock<Arc<GlobalState>> = OnceLock::new();
@@ -22,14 +21,30 @@ pub fn initialize_global() {
    // 初始化配置信息
   let wechat_config: WechatConfig = init_config();
 
+  let mut rng = rand::thread_rng();
+
+  log::info!("-------------------服务启动监听初始化 开始--------------------------------");
+  // 服务启动总线
+  let mut startup_event_bus = StartUpEventBus::new();
+
+  let http_server_handler = Box::new(
+    HttpServerHandler{
+      id: rng.gen::<u32>().to_string(),
+      http_server_running: false,
+      http_server: HttpServer::new(),
+    }
+  );
+  startup_event_bus.subscribe(http_server_handler);
+
+  log::info!("-------------------服务启动监听初始化 结束--------------------------------");
+
+
+  log::info!("-------------------微信消息监听初始化 开始--------------------------------");
   // 消息总线
   let mut msg_event_bus = MsgEventBus::new();
   
-  log::info!("-------------------微信监听初始化--------------------------------");
-  let mut rng = rand::thread_rng();
-  
   // 前台日志处理器
-  let log_handler = Arc::new(LogMessageHandler {
+  let log_handler = Box::new(LogMessageHandler {
       id: rng.gen::<u32>().to_string(),
   });
   msg_event_bus.subscribe(log_handler);
@@ -41,16 +56,17 @@ pub fn initialize_global() {
   // msg_event_bus.subscribe(console_log_handler);
 
   // http 消息转发
-  let http_handler = Arc::new(HttpMessageHandler {
+  let http_handler = Box::new(HttpMessageHandler {
     id: rng.gen::<u32>().to_string(),
   });
   msg_event_bus.subscribe(http_handler);
-  
-  let msg_event_bus_arc = Arc::new(Mutex::new(msg_event_bus));
-  
+
+  log::info!("-------------------微信消息监听初始化 结束--------------------------------");
+
   let global_state: GlobalState = GlobalState {
     wechat_config: Arc::new(Mutex::new(wechat_config)),
-    msg_event_bus: msg_event_bus_arc,
+    msg_event_bus: Arc::new(Mutex::new(msg_event_bus)),
+    startup_event_bus: Arc::new(Mutex::new(startup_event_bus)),
   };
   let _ = GLOBAL.set(Arc::new(global_state));
 }
