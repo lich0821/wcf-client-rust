@@ -6,8 +6,11 @@ import { WechatConfig } from '~/types/config';
 export const useConfigStore = defineStore('config', () => {
     // 整个配置文件
     const wechatConfig = ref<WechatConfig>({
+      // http 回调地址
       cburl: [],
       wsurl: '',
+      // http server配置
+      http_server_port: 10010,
       file_dir: '',
     });
      

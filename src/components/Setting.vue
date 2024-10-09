@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
-import type { FormInstance } from 'element-plus'
 import {
     Delete,
 } from '@element-plus/icons-vue'
@@ -8,7 +6,6 @@ import { useConfigStore } from "@/store/modules/config";
 import { ElMessage } from 'element-plus'
 
 const configStore = useConfigStore();
-const formRef = ref<FormInstance>()
 
 const removeDomain = (item: string) => {
     const index = configStore.wechatConfig.cburl.indexOf(item)
@@ -21,32 +18,26 @@ const addDomain = () => {
     configStore.wechatConfig.cburl.push('')
 }
 
-const submitForm = (formEl: FormInstance | undefined) => {
-    if (!formEl) return
-    formEl.validate(async (valid) => {
-        if (valid) {
-            const res = await configStore.update();
-            if (res) {
-                ElMessage({
-                    message: '保存成功',
-                    type: 'success',
-                })
-            } else {
-                ElMessage.error('保存错误')
-            }
-        } else {
-            ElMessage.error('请检查输入内容')
-        }
-    })
+const submitForm = async () => {
+    const res = await configStore.update();
+    if (res) {
+        ElMessage({
+            message: '保存成功',
+            type: 'success',
+        })
+    } else {
+        ElMessage.error('保存错误')
+    }
 }
 </script>
 
 <template>
     <el-container>
         <el-main>
-            <el-card style="w-full">
-                <template #header>http 回调地址</template>
-                <el-form ref="formRef" :model="configStore.wechatConfig" label-width="auto" class="demo-dynamic w-full">
+            <el-form ref="formRef" :model="configStore.wechatConfig" label-width="auto" class="demo-dynamic w-full">
+                <el-button type="primary" @click="submitForm()">保存</el-button>
+                <el-card style="w-full">
+                    <template #header>http 回调地址</template>
                     <el-form-item>
                         <el-row v-for="(http, index) in configStore.wechatConfig.cburl" :key="index"
                             class="w-full border-blue-600 m-b-2">
@@ -57,12 +48,16 @@ const submitForm = (formEl: FormInstance | undefined) => {
                         </el-row>
                     </el-form-item>
                     <el-form-item>
-                        <el-button type="primary" @click="submitForm(formRef)">提交</el-button>
                         <el-button @click="addDomain">新增回调</el-button>
                     </el-form-item>
-                </el-form>
-            </el-card>
-
+                </el-card>
+                <el-card style="w-full mt-8">
+                    <template #header>http server 配置</template>
+                    <el-form-item>
+                        <el-input-number v-model="configStore.wechatConfig.http_server_port" :min="1" :max="65535" />
+                    </el-form-item>
+                </el-card>
+            </el-form>
         </el-main>
     </el-container>
 </template>

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use log::info;
 
-use crate::{handler::event_entity::{Event, EventHandler}, http_server::HttpServer};
+use crate::{handler::event_entity::{Event, EventHandler}, http_server::HttpServer, service::global_service::GLOBAL};
 
 // 启动事件发布后，开启http服务
 pub struct HttpServerHandler {
@@ -16,7 +16,11 @@ impl EventHandler for HttpServerHandler {
         
         if let Event::StartUp() = event {
             info!("HttpServer 启动");
-            let port = 10010;
+
+            let global = GLOBAL.get().unwrap();
+            let wechat_config = global.wechat_config.try_lock().unwrap();
+            let port = wechat_config.http_server_port;
+
             let host_bytes = "0.0.0.0".to_string()
             .split('.')
             .map(|part| part.parse::<u8>().unwrap_or(0))
