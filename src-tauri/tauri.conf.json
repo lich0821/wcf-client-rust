@@ -8,7 +8,7 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "WeChatFerry",
+    "productName": "WcfRust",
     "version": "39.2.4"
   },
   "tauri": {

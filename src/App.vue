@@ -1,3 +1,40 @@
+<script lang="ts" setup>
+import { ElConfigProvider } from 'element-plus';
+import { listen } from '@tauri-apps/api/event';
+import { onMounted } from 'vue';
+import { confirm } from '@tauri-apps/api/dialog';
+import wcf from './command/wcf';
+import { useConfigStore } from '@/store/modules/config';
+import { getName, getVersion } from '@tauri-apps/api/app';
+import { appWindow } from '@tauri-apps/api/window';
+
+let configStore = useConfigStore();
+
+const confirmExit = async () => {
+    const shouldExit = await confirm("退出将无法使用服务，确定要退出吗？");
+    if (shouldExit) {
+        await wcf.exit();
+    }
+}
+
+onMounted(async () => {
+    setWindowsTitle();
+    await listen('log-message', (msg) => {
+        console.log(msg);
+    });
+    await listen('request-exit', () => {
+        confirmExit();
+    });
+    // 加载配置
+    await configStore.read();
+})
+
+const setWindowsTitle = async () => {
+    const app_name = await getName();
+    const app_version = await getVersion();
+    await appWindow.setTitle(app_name + "  V" + app_version);
+}
+</script>
 <template>
     <el-config-provider>
         <el-container h="full">
@@ -17,35 +54,6 @@
     </el-config-provider>
 </template>
 
-<script lang="ts" setup>
-import { ElConfigProvider } from 'element-plus';
-import { listen } from '@tauri-apps/api/event';
-import { onMounted } from 'vue';
-import { confirm } from '@tauri-apps/api/dialog';
-import wcf from './command/wcf';
-import { useConfigStore } from '@/store/modules/config';
-
-let configStore = useConfigStore();
-
-const confirmExit = async () => {
-    const shouldExit = await confirm("退出将无法使用服务，确定要退出吗？");
-    if (shouldExit) {
-        await wcf.exit();
-    }
-}
-
-onMounted(async () => {
-    await listen('log-message', (msg) => {
-        console.log(msg);
-    });
-    await listen('request-exit', () => {
-        confirmExit();
-    });
-    // 加载配置
-    await configStore.read();
-})
-
-</script>
 
 <style lang="scss">
 #app {
