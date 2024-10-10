@@ -53,7 +53,7 @@ const submitForm = async () => {
                 </el-card>
                 <el-card class="w-full mt-4">
                     <template #header>http server 配置</template>
-                    <el-form-item>
+                    <el-form-item label="端口号：">
                         <el-input-number v-model="configStore.wechatConfig.http_server_port" :min="1" :max="65535" />
                     </el-form-item>
                 </el-card>

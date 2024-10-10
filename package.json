@@ -17,6 +17,7 @@
         "@element-plus/icons-vue": "^2.3.1",
         "@imengyu/vue3-context-menu": "^1.4.1",
         "@tauri-apps/api": "^1.5.3",
+        "@tauri-apps/cli": "^1.6.2",
         "@types/qs": "^6.9.15",
         "@types/splitpanes": "^2.2.6",
         "@vue-js-cron/element-plus": "^3.0.1",
