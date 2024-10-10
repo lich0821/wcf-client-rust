@@ -27,6 +27,10 @@ const startOrStop = async () => {
             await wechatStore.stop();
         } else {
             await wechatStore.start();
+            var getUserInfoTask = window.setInterval(async function logname() {
+                await wechatStore.updateSlefInfo();
+                clearInterval(getUserInfoTask)
+            }, 5000);
         }
     } catch (err: any) {
         console.error(err);
@@ -72,11 +76,9 @@ onMounted(async () => {
                     <i inline-flex i="dark:ep-moon ep-sunny" />
                 </button>
             </el-menu-item>
-            <!-- <el-menu-item>
-                <a-link href="https://github.com/lich0821/WeChatFerry" status="success" target="_blank">
-                    <icon-github :style="{ fontSize: '32px' }" />
-                </a-link>
-            </el-menu-item> -->
+            <el-menu-item v-if="!!wechatStore.selfInfo.small_head_url">
+                <el-avatar shape="square" :size="36" :src="wechatStore.selfInfo.small_head_url" />
+            </el-menu-item>
         </el-menu>
     </div>
 </template>

@@ -10,6 +10,7 @@ declare module 'vue' {
     404: typeof import('./components/404.vue')['default']
     BaseHeader: typeof import('./components/layouts/BaseHeader.vue')['default']
     ElAutoResizer: typeof import('element-plus/es')['ElAutoResizer']
+    ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
     ElCol: typeof import('element-plus/es')['ElCol']
