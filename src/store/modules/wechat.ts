@@ -14,18 +14,23 @@ export const useWechatStore = defineStore('wechat', {
             this.selfInfo = selfInfo;
             sessionStorage.setItem('selfInfo', JSON.stringify(selfInfo));
         },
+        async updateSlefInfo() {
+            if(this.isServerRunning){
+                this.selfInfo = await wcf_api.userinfo();
+                console.log(this.selfInfo);
+            }
+        },
         async getRunningFlag() { 
             this.isServerRunning = await wcf.is_http_server_running();
         },
         async start() { 
             await wcf.start_server('0.0.0.0', 10010);
             this.isServerRunning = await wcf.is_http_server_running();
-            this.selfInfo = await wcf_api.userinfo();
-            console.log(this.selfInfo);
         },
         async stop() { 
             await wcf.stop_server();
             this.isServerRunning = await wcf.is_http_server_running();
+            this.setSelfInfo({}); 
         },
     },
 });
