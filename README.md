@@ -1,5 +1,5 @@
 # WeChatFerry HTTP 客户端（基于 Rust）
-又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/-HPeBm4SheFteWrXPulTjA)
+又一个 [WeChatFerry](https://github.com/lich0821/WeChatFerry) 的 HTTP 客户端。[🙋 FAQ](https://mp.weixin.qq.com/s/Y2Q37VYV730Iu9TrgiCmCw)
 
 <details><summary><font color="#FF0000" size="5">免责声明【必读】</font></summary>
 
