@@ -146,3 +146,6 @@ RUST_BACKTRACE=full RUST_LOG=debug cargo tauri dev
 ### 定制 Logo
 1. 找一张 logo 图片 `your_path/logo.png`（1024*1024 的 PNG 图片）
 2. 通过命令重新生成：`cargo tauri icon your_path/logo.png`
+
+## 感谢各位大佬贡献代码
+<a href="https://github.com/lich0821/wcf-client-rust/graphs/contributors">![](https://contrib.rocks/image?repo=lich0821/wcf-client-rust)</a>
