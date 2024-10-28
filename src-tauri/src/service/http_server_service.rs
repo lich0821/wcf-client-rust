@@ -1,28 +1,31 @@
-use log::{debug, error};
+use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
 
 use crate::endpoints;
 use crate::wcferry::WeChat;
 
-pub struct HttpServer {
+pub struct HttpServerService {
     pub shutdown_tx: Option<oneshot::Sender<()>>,
     pub wechat: Option<Arc<Mutex<WeChat>>>,
 }
 
-impl HttpServer {
+impl HttpServerService {
     pub fn new() -> Self {
-        HttpServer {
+        HttpServerService {
             shutdown_tx: None,
             wechat: None,
         }
     }
 
-    pub fn start(&mut self, host: [u8; 4], port: u16) -> Result<(), String> {
-        let wechat = Arc::new(Mutex::new(WeChat::new(true)));
+    pub fn start(&mut self, wechat: Arc<Mutex<WeChat>>, port: u16) -> Result<(), String> {
+        info!("HttpServerService 启动");
+
+        let host = [0,0,0,0];
+
         self.wechat = Some(wechat.clone());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
-        let addr = (host, port);
+        let addr: ([u8;4], u16) = (host, port);
 
         let routes = endpoints::get_routes(wechat);
         let (_, server) = warp::serve(routes).bind_with_graceful_shutdown(addr, async {
@@ -44,6 +47,7 @@ impl HttpServer {
     }
 
     pub fn stop(&mut self) -> Result<(), String> {
+        info!("HttpServerService 关闭");
         if let Some(shutdown_tx) = self.shutdown_tx.take() {
             tokio::spawn(async move {
                 if shutdown_tx.send(()).is_err() {
