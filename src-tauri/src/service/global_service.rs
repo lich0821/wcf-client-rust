@@ -2,7 +2,9 @@ use std::{fs, sync::{Arc, Mutex, OnceLock, RwLock}};
 
 use rand::Rng;
 
-use crate::{handler::{message::{http_message_handler::HttpMessageHandler, log_message_handler::LogMessageHandler}, msg_event_mgr::MsgEventBus, startup::http_server_handler::HttpServerHandler, startup_event_mgr::StartUpEventBus}, http_server::HttpServer,  wechat_config::WechatConfig};
+use crate::{handler::{message::{http_message_handler::HttpMessageHandler, log_message_handler::LogMessageHandler, socketio_message_handler::SocketIOMessageHandler}, msg_event_mgr::MsgEventBus, startup::service_handler::HttpServerHandler, startup_event_mgr::StartUpEventBus}, service::http_server_service::HttpServerService, wechat_config::WechatConfig};
+
+use super::{socketio_service::SocketIOService, wechat_service::WechatService};
 
 
 // 全局参数结构
@@ -10,6 +12,9 @@ pub struct GlobalState {
   pub wechat_config: RwLock<WechatConfig>,
   pub msg_event_bus: Arc<Mutex<MsgEventBus>>,
   pub startup_event_bus: Arc<Mutex<StartUpEventBus>>,
+  pub wechat_service: Arc<Mutex<WechatService>>,
+  pub http_server_service: Arc<Mutex<HttpServerService>>,
+  pub socketio_service: Arc<Mutex<SocketIOService>>
 }
 // 全局变量
 pub static GLOBAL: OnceLock<Arc<GlobalState>> = OnceLock::new();
@@ -31,7 +36,6 @@ pub fn initialize_global() {
     HttpServerHandler{
       id: rng.gen::<u32>().to_string(),
       http_server_running: false,
-      http_server: HttpServer::new(),
     }
   );
   startup_event_bus.subscribe(http_server_handler);
@@ -61,12 +65,23 @@ pub fn initialize_global() {
   });
   msg_event_bus.subscribe(http_handler);
 
+
+    // socketIO 消息转发
+    let socket_io_handler = Box::new(SocketIOMessageHandler {
+      id: rng.gen::<u32>().to_string(),
+    });
+    msg_event_bus.subscribe(socket_io_handler);
+
+
   log::info!("-------------------微信消息监听初始化 结束--------------------------------");
 
   let global_state: GlobalState = GlobalState {
     wechat_config: RwLock::new(wechat_config),
     msg_event_bus: Arc::new(Mutex::new(msg_event_bus)),
     startup_event_bus: Arc::new(Mutex::new(startup_event_bus)),
+    wechat_service: Arc::new(Mutex::new(WechatService::new(None))),
+    http_server_service:  Arc::new(Mutex::new(HttpServerService::new())),
+    socketio_service: Arc::new(Mutex::new(SocketIOService::new()))
   };
   let _ = GLOBAL.set(Arc::new(global_state));
 }

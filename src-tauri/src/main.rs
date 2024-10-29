@@ -21,7 +21,6 @@ use winapi::{
 };
 
 mod endpoints;
-mod http_server;
 mod wcferry;
 mod service;
 mod wechat_config;
