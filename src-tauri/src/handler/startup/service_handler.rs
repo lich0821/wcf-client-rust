@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use log::info;
 
-use crate::{handler::event_entity::{Event, EventHandler},  service::{global_service::GLOBAL}, wcferry::WeChat};
+use crate::{handler::event_entity::{Event, EventHandler},  service::global_service::GLOBAL, wcferry::WeChat};
 
 // 启动事件发布后，开启对应的所有服务
 // wechat 客户端
@@ -35,11 +35,17 @@ impl EventHandler for HttpServerHandler {
             http_server_service.start(wechat.clone(), port).unwrap();
             info!("服务启动，监听 http://{}:{}", "0.0.0.0", port);
             info!("浏览器访问 http://localhost:{}/swagger/ 查看文档", port);
+
+            // 初始化 socketio 服务
+            let mut socket_service = global.socketio_service.lock().unwrap();
+            socket_service.start(wechat_config.wsurl.clone())
         }
         
         if let Event::Shutdown() = event {
            
             let global = GLOBAL.get().unwrap();
+
+            // 关闭 http_server 服务
             let mut http_server_service = global.http_server_service.lock().unwrap();
             match http_server_service.stop() {
                 Ok(()) => {
@@ -50,6 +56,10 @@ impl EventHandler for HttpServerHandler {
                     log::error!("http服务关闭失败 {}", e);
                 }
             }
+
+            // 关闭 socketio 服务
+            let mut socket_service = global.socketio_service.lock().unwrap();
+            socket_service.stop();
         }
     }
 }
