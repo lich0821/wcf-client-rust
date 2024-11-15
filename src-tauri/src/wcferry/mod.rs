@@ -542,7 +542,7 @@ impl WeChat {
                 for member in room_data.members.into_iter() {
                     members.push(RoomMember {
                         wxid: member.wxid,
-                        name: member.name,
+                        name: member.name.unwrap_or("".to_string()),
                         state: member.state,
                     });
                 }
