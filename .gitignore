@@ -1,7 +1,6 @@
 !.gitignore
 !.github/
 
-*.lock
 target/
 
 # Logs
