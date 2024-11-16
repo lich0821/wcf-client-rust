@@ -13,11 +13,19 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      # Ignore lines containing 'version = "x.x.x"' and hash the rest of Cargo.lock
+      - name: Generate custom cache key
+        id: cargo-hash
+        run: |
+          grep -v '^version = ' src-tauri/Cargo.lock | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
+          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
+          echo "::set-output name=CARGO_CACHE_KEY::$(cat cargo_hash.txt)"
+
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('src-tauri/Cargo.lock') }}-${{ runner.os }}
+          key: ${{ runner.os }}-cargo-registry-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}-${{ runner.os }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
@@ -25,7 +33,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('src-tauri/Cargo.lock') }}-${{ runner.os }}
+          key: ${{ runner.os }}-cargo-git-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}-${{ runner.os }}
           restore-keys: |
             ${{ runner.os }}-cargo-git-
 
@@ -33,7 +41,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src-tauri/target
-          key: ${{ runner.os }}-cargo-target-${{ matrix.target }}-${{ hashFiles('src-tauri/Cargo.lock') }}-$(rustc --version)
+          key: ${{ runner.os }}-cargo-target-${{ matrix.target }}-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}-$(rustc --version)
           restore-keys: |
             ${{ runner.os }}-cargo-target-
 
@@ -46,7 +54,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.75.0
           override: true
 
       - name: Cache node_modules
@@ -67,7 +75,7 @@ jobs:
           path: |
             ~/.cargo/bin/cargo-tauri
             ~/.cargo/bin/cargo-tauri.exe
-          key: ${{ runner.os }}-tauri-cli-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: ${{ runner.os }}-tauri-cli-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
           restore-keys: |
             ${{ runner.os }}-tauri-cli-
 
@@ -77,7 +85,7 @@ jobs:
           version: "22.2"
 
       - name: Install Tauri CLI if not cached
-        run: cargo install tauri-cli --version ^2.0.0
+        run: cargo install tauri-cli --version ^1.6.1
         if: steps.tauri-cli-cache.outputs.cache-hit != 'true'
 
       - name: Build
