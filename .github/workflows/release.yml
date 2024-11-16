@@ -85,7 +85,7 @@ jobs:
           version: "22.2"
 
       - name: Install Tauri CLI if not cached
-        run: cargo install tauri-cli --version ^1.5.9
+        run: cargo install tauri-cli --locked
         if: steps.tauri-cli-cache.outputs.cache-hit != 'true'
 
       - name: Build
