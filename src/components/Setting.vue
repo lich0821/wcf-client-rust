@@ -63,6 +63,12 @@ const submitForm = async () => {
                         <el-input v-model="configStore.wechatConfig.wsurl" />
                     </el-form-item>
                 </el-card>
+                <el-card class="w-full mt-4">
+                    <template #header>消息过滤配置</template>
+                    <el-form-item label="正则白名单过滤：">
+                        <el-input v-model="configStore.wechatConfig.msg_filter_regexp" />
+                    </el-form-item>
+                </el-card>
             </el-form>
         </el-main>
     </el-container>
