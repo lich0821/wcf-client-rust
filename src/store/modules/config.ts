@@ -14,6 +14,7 @@ export const useConfigStore = defineStore('config', () => {
       // 显示消息日志
       front_msg_show: true,
       file_dir: '',
+      msg_filter_regexp: '',
     });
      
     const update = async () => {
