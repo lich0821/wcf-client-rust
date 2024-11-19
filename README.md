@@ -49,7 +49,7 @@
 ## 快速开始
 >ℹ️ 如果跑过机器人，先将机器人停止，然后退出微信，再开始，以避免奇奇怪怪的问题。
 
-* 安装微信 `3.9.10.27`（[这里能找到](https://github.com/lich0821/WeChatFerry/releases/latest)）
+* 安装微信 `3.9.11.25`（[这里能找到](https://github.com/lich0821/WeChatFerry/releases/latest)）
 * 下载 [最新版安装包](https://github.com/lich0821/wcf-client-rust/releases/latest)
 * 安装
 * 运行
