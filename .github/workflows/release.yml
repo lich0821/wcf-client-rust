@@ -73,8 +73,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/cargo-tauri
-            ~/.cargo/bin/cargo-tauri.exe
+            C:/Users/runneradmin/.cargo/bin/cargo-tauri
+            C:/Users/runneradmin/.cargo/bin/cargo-tauri.exe
           key: ${{ runner.os }}-tauri-cli-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
           restore-keys: |
             ${{ runner.os }}-tauri-cli-
@@ -87,6 +87,8 @@ jobs:
       - name: Install Tauri CLI if not cached
         run: cargo install tauri-cli --version ^1.0.0
         if: steps.tauri-cli-cache.outputs.cache-hit != 'true'
+        env:
+          PATH: C:/Users/runneradmin/.cargo/bin:${{ env.PATH }}
 
       - name: Build
         run: cargo tauri build
