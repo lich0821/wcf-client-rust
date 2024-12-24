@@ -3,7 +3,7 @@ import App from "./App.vue";
 import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
 import "@/styles/index.scss";
-import "uno.css";
+import "virtual:uno.css";
 import "element-plus/theme-chalk/src/message.scss";
 import "element-plus/theme-chalk/src/loading.scss";
 import { router } from '@/router';
