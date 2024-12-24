@@ -4,8 +4,7 @@ import vue from '@vitejs/plugin-vue'
 
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-
-import Unocss from 'unocss/vite'
+import UnoCSS from "unocss/vite"
 import {
   presetAttributify,
   presetIcons,
@@ -61,7 +60,7 @@ export default defineConfig({
 
     // https://github.com/antfu/unocss
     // see unocss.config.ts for config
-    Unocss({
+    UnoCSS({
       presets: [
         presetUno(),
         presetAttributify(),
