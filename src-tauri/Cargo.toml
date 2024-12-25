@@ -42,6 +42,7 @@ ureq = { version = "2.10", features = ["json"] }
 rust_socketio = {version = "0.6.0", features = ["async"] }
 futures-util = "0.3.31"
 regex = "1"
+quickxml_to_serde = {version ="0.6.0", features = ["json_types", "regex_path"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
