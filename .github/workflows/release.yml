@@ -77,9 +77,10 @@ jobs:
             ${{ runner.os }}-node-modules-
 
       - name: Install Node Module
-        run: npm i pnpm -g && pnpm i
-        env:
-          PATH: C:/Users/runneradmin/AppData/Roaming/npm:${{ env.PATH }}
+        run: |
+          npm i pnpm -g
+          echo "C:/Users/runneradmin/AppData/Roaming/npm" >> $GITHUB_PATH
+          pnpm i
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
