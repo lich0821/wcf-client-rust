@@ -2,7 +2,7 @@ use std::{fs, sync::{Arc, Mutex, OnceLock, RwLock}};
 
 use rand::Rng;
 
-use crate::{handler::{message::{http_message_handler::HttpMessageHandler, log_message_handler::LogMessageHandler, socketio_message_handler::SocketIOMessageHandler}, msg_event_mgr::MsgEventBus, startup::service_handler::HttpServerHandler, startup_event_mgr::StartUpEventBus}, service::http_server_service::HttpServerService, wechat_config::WechatConfig};
+use crate::{handler::{message::{event_message_handler::EventMessageHandler, http_message_handler::HttpMessageHandler, log_message_handler::LogMessageHandler, socketio_message_handler::SocketIOMessageHandler}, msg_event_mgr::MsgEventBus, startup::service_handler::HttpServerHandler, startup_event_mgr::StartUpEventBus}, service::http_server_service::HttpServerService, wechat_config::WechatConfig};
 
 use super::{socketio_service::SocketIOService, wechat_service::WechatService};
 
@@ -66,11 +66,17 @@ pub fn initialize_global() {
   msg_event_bus.subscribe(http_handler);
 
 
-    // socketIO 消息转发
-    let socket_io_handler = Box::new(SocketIOMessageHandler {
-      id: rng.gen::<u32>().to_string(),
-    });
-    msg_event_bus.subscribe(socket_io_handler);
+  // 事件处理
+  let event_msg_handler = Box::new(EventMessageHandler {
+    id: "@事件处理器".to_string(),
+  });
+  msg_event_bus.subscribe(event_msg_handler);
+
+  // socketIO 消息转发
+  let socket_io_handler = Box::new(SocketIOMessageHandler {
+    id: rng.gen::<u32>().to_string(),
+  });
+  msg_event_bus.subscribe(socket_io_handler);
 
 
   log::info!("-------------------微信消息监听初始化 结束--------------------------------");
