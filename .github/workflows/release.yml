@@ -20,7 +20,6 @@ jobs:
           grep -v '^version = ' src-tauri/Cargo.lock | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
           echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
           echo "::set-output name=CARGO_CACHE_KEY::$(cat cargo_hash.txt)"
-        shell: bash
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
