@@ -17,11 +17,10 @@ jobs:
       - name: Generate custom cache key
         id: cargo-hash
         run: |
-          Get-Content src-tauri/Cargo.lock | Where-Object { -Not ($_ -match '^version = ') } | `
-          Get-FileHash -Algorithm SHA256 | ForEach-Object { $_.Hash } > cargo_hash.txt
-          echo "CARGO_CACHE_KEY=$(Get-Content cargo_hash.txt)" >> $env:GITHUB_ENV
-          echo "::set-output name=CARGO_CACHE_KEY::$(Get-Content cargo_hash.txt)"
-        shell: pwsh
+          grep -v '^version = ' src-tauri/Cargo.lock | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
+          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
+          echo "::set-output name=CARGO_CACHE_KEY::$(cat cargo_hash.txt)"
+        shell: bash
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
