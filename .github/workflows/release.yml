@@ -45,29 +45,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-target-
 
-      - name: Set up node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}-${{ runner.os }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      - name: Install Node Module
-        run: npm i
-
       - name: Cache Tauri CLI (cross-platform)
         id: tauri-cli-cache
         uses: actions/cache@v4
@@ -79,10 +56,36 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tauri-cli-
 
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}-${{ runner.os }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Set up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Node Module
+        run: npm i pnpm -g && pnpm i
+
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
           version: "22.2"
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Add cargo to PATH
+        run: echo "::add-path::C:/Users/runneradmin/.cargo/bin"
 
       - name: Install Tauri CLI if not cached
         run: cargo install tauri-cli --version ^1.0.0
