@@ -346,10 +346,10 @@ impl WeChat {
             while wechat.listening.load(Ordering::Relaxed) {
                 match rx.recv() {
                     Ok(msg) => {
-                         // 发送到消息监听器中
-                         let global = GLOBAL.get().unwrap();
-                         let event_bus = global.msg_event_bus.lock().unwrap();
-                         let _ = event_bus.send_message(Event::ClientMessage(msg.clone()));
+                        // 发送到消息监听器中
+                        let global = GLOBAL.get().unwrap();
+                        let event_bus = global.msg_event_bus.lock().unwrap();
+                        let _ = event_bus.send_message(Event::ClientMessage(msg.clone()));
                     }
                     Err(e) => {
                         error!("消息出队失败: {}", e);
@@ -533,22 +533,64 @@ impl WeChat {
         if db_rows.len() == 0 {
             return Ok(None);
         }
+        let contacts_result = self.get_contacts().unwrap_or(wcf::RpcContacts{
+            contacts: vec![],
+        });
+
         let room_row = db_rows.get(0).expect("获取群聊索引失败");
         let fields = &room_row.fields;
         for field in fields.into_iter() {
             if field.column.eq("RoomData") {
+                debug!("roomdata field content:{:?}", field.content);
                 let room_data = roomdata::RoomData::decode(field.content.as_slice())?;
                 let mut members: Vec<RoomMember> = vec![];
+                debug!(
+                    "群聊：{} 总计：{}人, 详情:{:?}",
+                    room_id,
+                    room_data.members.len(),
+                    room_data.members
+                );
+                let mut i = 1;
                 for member in room_data.members.into_iter() {
-                    members.push(RoomMember {
-                        wxid: member.wxid,
-                        name: member.name.unwrap_or("".to_string()),
-                        state: member.state,
-                    });
+                    debug!("{}.current member is :{:?}", i, member);
+                    i += 1;
+                    match member.name {
+                        Some(str) => {
+                            if str == "" {
+                                for contact in contacts_result.contacts.clone().into_iter() {
+                                    if contact.wxid == member.wxid {
+                                        debug!("从通讯录获取名称:{}", contact.name);
+                                        members.push(RoomMember {
+                                            wxid: member.wxid,
+                                            name: contact.name,
+                                            state: member.state,
+                                        });
+                                        break;
+                                    }
+                                }
+                            } else {
+                                debug!("从roomdata获取名称:{}", str);
+                                members.push(RoomMember {
+                                    wxid: member.wxid,
+                                    name: str,
+                                    state: member.state,
+                                });
+                            }
+                        }
+                        None => (),
+                    };
                 }
                 return Ok(Some(members));
             }
         }
         Ok(None)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_query_room_member() {}
 }
