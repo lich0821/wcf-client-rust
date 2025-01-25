@@ -2,6 +2,7 @@ use libloading::{Library, Symbol};
 use log::{debug, error, info, warn};
 use nng::options::{Options, RecvTimeout, SendTimeout};
 use prost::Message;
+use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     mpsc::{self, Receiver, SyncSender},
@@ -533,56 +534,82 @@ impl WeChat {
         if db_rows.len() == 0 {
             return Ok(None);
         }
-        let contacts_result = self.get_contacts().unwrap_or(wcf::RpcContacts{
-            contacts: vec![],
-        });
-
         let room_row = db_rows.get(0).expect("获取群聊索引失败");
         let fields = &room_row.fields;
         for field in fields.into_iter() {
             if field.column.eq("RoomData") {
                 debug!("roomdata field content:{:?}", field.content);
                 let room_data = roomdata::RoomData::decode(field.content.as_slice())?;
-                let mut members: Vec<RoomMember> = vec![];
-                debug!(
-                    "群聊：{} 总计：{}人, 详情:{:?}",
-                    room_id,
-                    room_data.members.len(),
-                    room_data.members
-                );
-                let mut i = 1;
-                for member in room_data.members.into_iter() {
-                    debug!("{}.current member is :{:?}", i, member);
-                    i += 1;
-                    match member.name {
-                        Some(str) => {
-                            if str == "" {
-                                for contact in contacts_result.contacts.clone().into_iter() {
-                                    if contact.wxid == member.wxid {
-                                        debug!("从通讯录获取名称:{}", contact.name);
-                                        members.push(RoomMember {
-                                            wxid: member.wxid,
-                                            name: contact.name,
-                                            state: member.state,
-                                        });
-                                        break;
-                                    }
-                                }
-                            } else {
-                                debug!("从roomdata获取名称:{}", str);
-                                members.push(RoomMember {
-                                    wxid: member.wxid,
-                                    name: str,
-                                    state: member.state,
-                                });
+                debug!("群聊：{} 总计：{}人", room_id, room_data.members.len());
+    
+                // 构建需要查询昵称的wxid列表
+                let wxids: Vec<_> = room_data.members
+                    .iter()
+                    .filter(|m| m.name.as_deref().unwrap_or_default().is_empty())
+                    .map(|m| m.wxid.clone())
+                    .collect();
+    
+                // 构建昵称映射表
+                let nick_name_map = if !wxids.is_empty() {
+                    let params = wxids.iter()
+                        .map(|id| format!("'{}'", id.replace("'", "''")))
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    
+                    let query = wcf::DbQuery {
+                        db: String::from("MicroMsg.db"),
+                        sql: format!(
+                            "SELECT UserName, NickName FROM Contact WHERE UserName IN ({})",
+                            params
+                        ),
+                    };
+                    let rows: Result<wcf::DbRows, Box<dyn std::error::Error>> = execute_wcf_command!(
+                        self,
+                        Functions::FuncExecDbQuery,
+                        ReqMsg::Query(query),
+                        Rows,
+                        "查询昵称"
+                    );
+                    let db_rows = rows?.rows;
+                    db_rows
+                    .into_iter()
+                    .filter_map(|row| {
+                        let username = row.fields.iter()
+                            .find(|f| f.column == "UserName")
+                            .and_then(|f| String::from_utf8_lossy(&f.content).parse().ok());
+                        
+                        let nickname = row.fields.iter()
+                            .find(|f| f.column == "NickName")
+                            .and_then(|f| String::from_utf8_lossy(&f.content).parse().ok());
+    
+                        username.and_then(|u:String| nickname.map(|n:String| (u, n)))
+                    })
+                    .collect::<HashMap<_, _>>()
+                } else {
+                    HashMap::new()
+                };
+    
+                // 构建成员列表
+                let members = room_data.members
+                    .into_iter()
+                    .map(|mut member| {
+                        if member.name.as_deref().unwrap_or_default().is_empty() {
+                            if let Some(nick) = nick_name_map.get(&member.wxid) {
+                                member.name = Some(nick.clone());
                             }
                         }
-                        None => (),
-                    };
-                }
+                        RoomMember {
+                            wxid: member.wxid,
+                            name: member.name.unwrap_or_default(),
+                            state: member.state,
+                        }
+                    })
+                    .collect();
+    
                 return Ok(Some(members));
             }
         }
+    
         Ok(None)
     }
 }
