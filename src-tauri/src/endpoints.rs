@@ -174,7 +174,12 @@ pub struct Image {
     #[schema(example = "C:/")]
     dir: String,
     /// 超时时间，单位秒
-    #[schema(example = 10)]
+    #[schema(
+        minimum = 0, 
+        maximum = 255,
+        format = "uint8",  // 可选：显式标记为 8 位无符号整数
+        example = 10
+    )]
     timeout: u8,
 }
 
@@ -238,7 +243,7 @@ pub fn get_routes(
             delete_chatroom_member, revoke_msg, query_room_member),
         components(schemas(
             ApiResponse<bool>, ApiResponse<String>, AttachMsg, AudioMsg, DbNames, DbQuery, DbTable, DbTables,
-            DecPath, FieldContent, ForwardMsg, Image, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact,
+            DecPath, FieldContent, ForwardMsg, Image, SaveFile, MemberMgmt, MsgTypes, PatMsg, PathMsg, RichText, RpcContact,
             RpcContacts, TextMsg, Transfer, UserInfo, Verification, ApiResponse<Member>, Member, SelfInfo
         )),
         tags((name = "WCF", description = "玩微信的接口")),
@@ -688,7 +693,7 @@ pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
     return handle_error("下载超时");
 }
 
-/// 保存图片
+/// 保存文件
 #[utoipa::path(
     post,
     tag = "WCF",
