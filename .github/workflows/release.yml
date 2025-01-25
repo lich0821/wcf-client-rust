@@ -29,7 +29,7 @@ jobs:
       - name: Generate custom cache key
         id: cargo-hash
         run: |
-          grep -v '^version = ' src-tauri/Cargo.lock | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
+          grep -v '^version = ' src-tauri/Cargo.toml | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
           echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
           echo "::set-output name=CARGO_CACHE_KEY::$(cat cargo_hash.txt)"
 
