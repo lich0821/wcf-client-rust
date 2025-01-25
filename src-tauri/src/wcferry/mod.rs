@@ -2,6 +2,7 @@ use libloading::{Library, Symbol};
 use log::{debug, error, info, warn};
 use nng::options::{Options, RecvTimeout, SendTimeout};
 use prost::Message;
+use std::collections::HashMap;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     mpsc::{self, Receiver, SyncSender},
@@ -536,6 +537,11 @@ impl WeChat {
         let contacts_result = self.get_contacts().unwrap_or(wcf::RpcContacts{
             contacts: vec![],
         });
+        let contacts_map: HashMap<String, &wcf::RpcContact> = contacts_result
+        .contacts
+        .iter()
+        .map(|contact| (contact.wxid.clone(), contact))
+        .collect();
 
         let room_row = db_rows.get(0).expect("获取群聊索引失败");
         let fields = &room_row.fields;
@@ -555,30 +561,48 @@ impl WeChat {
                     debug!("{}.current member is :{:?}", i, member);
                     i += 1;
                     match member.name {
-                        Some(str) => {
-                            if str == "" {
-                                for contact in contacts_result.contacts.clone().into_iter() {
-                                    if contact.wxid == member.wxid {
-                                        debug!("从通讯录获取名称:{}", contact.name);
-                                        members.push(RoomMember {
-                                            wxid: member.wxid,
-                                            name: contact.name,
-                                            state: member.state,
-                                        });
-                                        break;
-                                    }
+                        Some(name) => {
+                            if name.is_empty() {
+                                // 如果 name 为空，尝试从通讯录中获取名称
+                                if let Some(contact) = contacts_map.get(member.wxid.as_str()) {
+                                    debug!(
+                                        "成员 {} 的名称为空，从通讯录获取名称: {}",
+                                        member.wxid, contact.name
+                                    );
+                                    members.push(RoomMember {
+                                        wxid: member.wxid,
+                                        name: contact.name.clone(), // 克隆 name
+                                        state: member.state,
+                                    });
+                                } else {
+                                    debug!("成员 {} 的名称为空，且未在通讯录中找到", member.wxid);
+                                    // 如果通讯录中也没有名称，可以跳过或使用默认值
+                                    members.push(RoomMember {
+                                        wxid: member.wxid,
+                                        name: String::new(), // 使用空字符串作为默认值
+                                        state: member.state,
+                                    });
                                 }
                             } else {
-                                debug!("从roomdata获取名称:{}", str);
+                                // 如果 name 不为空，直接使用
+                                debug!("从 RoomData 获取名称: {}", name);
                                 members.push(RoomMember {
                                     wxid: member.wxid,
-                                    name: str,
+                                    name, // name 已经是 String，无需克隆
                                     state: member.state,
                                 });
                             }
                         }
-                        None => (),
-                    };
+                        None => {
+                            debug!("成员 {} 的 name 字段为 None", member.wxid);
+                            // 如果 name 为 None，可以跳过或使用默认值
+                            members.push(RoomMember {
+                                wxid: member.wxid,
+                                name: String::new(), // 使用空字符串作为默认值
+                                state: member.state,
+                            });
+                        }
+                    }
                 }
                 return Ok(Some(members));
             }
