@@ -11,7 +11,7 @@ use log::{debug, error};
 use reqwest::get;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 use std::fs::File;
 use std::io::{copy, Cursor};
@@ -161,7 +161,10 @@ pub struct Id {
 #[derive(Debug, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct RoomId {
-    room_id: String,
+    #[serde(alias = "room_id")] // 兼容旧的 room_id
+    roomid: String,
+    #[serde(default)] // 允许字段缺失
+    wxids: Option<String>, // 新增过滤字段
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -889,31 +892,50 @@ pub async fn revoke_msg(msg: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Inf
     get,
     tag = "WCF",
     path = "/query-room-member",
-    params(("room_id"=String, Query, description = "群ID")),
+    params(
+        ("roomid" = String, Query, 
+            example = "123@chatroom", 
+            description = "群ID"),
+        ("wxids" = Option<String>, Query, 
+            example = "wxid_abc,wxid_def", 
+            description = "可选-逗号分隔的成员微信ID列表")
+    ),
     responses(
         (status = 200, body = Vec<Member>, description = "查询群成员")
     )
 )]
 pub async fn query_room_member(
-    room_id: RoomId,
+    query: RoomId,
     wechat: Arc<Mutex<WeChat>>,
 ) -> Result<Json, Infallible> {
     let wechat = wechat.lock().unwrap();
-    let resp = match wechat.clone().query_room_member(room_id.room_id.clone()) {
+
+        // 解析逗号分隔的wxid列表
+    let target_ids: HashSet<String> = query.wxids
+        .as_deref()
+        .map(|s| s.split(','))
+        .into_iter()
+        .flatten()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    
+    let resp = match wechat.clone().query_room_member(query.roomid.clone()) {
         Ok(members) => match members {
             Some(mbs) => {
-                let mut room_members: Vec<Member> = vec![];
-                for member in mbs.into_iter() {
-                    room_members.push(Member {
+                let filtered_members: Vec<_> = mbs
+                    .into_iter()
+                    .filter(|m| target_ids.is_empty() || target_ids.contains(&m.wxid))
+                    .map(|member| Member {
                         wxid: member.wxid,
                         name: member.name,
                         state: member.state,
                     })
-                }
+                    .collect();
                 ApiResponse {
                     status: 0,
                     error: None,
-                    data: Some(room_members),
+                    data: Some(filtered_members),
                 }
             }
             None => ApiResponse {
