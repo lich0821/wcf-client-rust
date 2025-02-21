@@ -142,7 +142,8 @@ macro_rules! build_route_fn {
     ApiResponseContacts = ApiResponse<RpcContacts>,
     ApiResponseDbNames = ApiResponse<DbNames>,
     ApiResponseMsgTypes = ApiResponse<MsgTypes>,
-    ApiResponseDbTables = ApiResponse<DbTables>)]
+    ApiResponseDbTables = ApiResponse<DbTables>,
+    ApiResponseMembers = ApiResponse<Vec<Member>>)]
 struct ApiResponse<T>
 where
     T: Serialize,
@@ -901,7 +902,7 @@ pub async fn revoke_msg(msg: Id, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Inf
             description = "可选-逗号分隔的成员微信ID列表")
     ),
     responses(
-        (status = 200, body = Vec<Member>, description = "查询群成员")
+        (status = 200, body = ApiResponseMembers, description = "查询群成员")
     )
 )]
 pub async fn query_room_member(
