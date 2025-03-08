@@ -704,7 +704,7 @@ pub async fn save_image(msg: Image, wechat: Arc<Mutex<WeChat>>) -> Result<Json, 
     path = "/save-file",
     request_body = SaveFile,
     responses(
-        (status = 200, body = ApiResponseString, description = "保存文件(只下周不解密)")
+        (status = 200, body = ApiResponseString, description = "保存文件(只下载不解密)")
     )
 )]
 pub async fn save_file(msg: SaveFile, wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
