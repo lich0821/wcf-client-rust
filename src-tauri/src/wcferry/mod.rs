@@ -126,6 +126,8 @@ pub struct SelfInfo {
     pub small_head_url: Option<String>,
     /// 大头像
     pub big_head_url: Option<String>,
+    /// 别名
+    pub alias: String,
 }
 
 #[derive(Debug)]
@@ -249,6 +251,7 @@ impl WeChat {
             home: user_info.home,
             small_head_url: None,
             big_head_url: None,
+            alias: user_info.alias,
         };
         let query = wcf::DbQuery {
             db: String::from("MicroMsg.db"),

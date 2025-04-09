@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "WcfRust",
-    "version": "39.4.1"
+    "version": "39.4.5"
   },
   "tauri": {
     "systemTray": {
