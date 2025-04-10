@@ -207,8 +207,8 @@ pub struct XmlMsg {
     #[prost(string, tag = "3")]
     pub path: ::prost::alloc::string::String,
     /// 消息类型
-    #[prost(int32, tag = "4")]
-    pub r#type: i32,
+    #[prost(uint64, tag = "4")]
+    pub r#type: u64,
 }
 #[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -358,6 +358,9 @@ pub struct UserInfo {
     /// 文件/图片等父路径
     #[prost(string, tag = "4")]
     pub home: ::prost::alloc::string::String,
+    /// 修改后的wxid
+    #[prost(string, tag = "5")]
+    pub alias: ::prost::alloc::string::String,
 }
 #[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -467,6 +470,45 @@ pub struct ForwardMsg {
     /// 转发接收目标，群为 roomId，个人为 wxid
     #[prost(string, tag = "2")]
     pub receiver: ::prost::alloc::string::String,
+}
+#[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RoomData {
+    #[prost(message, repeated, tag = "1")]
+    pub members: ::prost::alloc::vec::Vec<room_data::RoomMember>,
+    #[prost(int32, optional, tag = "2")]
+    pub field_2: ::core::option::Option<i32>,
+    #[prost(int32, tag = "3")]
+    pub field_3: i32,
+    #[prost(int32, optional, tag = "4")]
+    pub field_4: ::core::option::Option<i32>,
+    #[prost(int32, tag = "5")]
+    pub capacity: i32,
+    #[prost(string, optional, tag = "6")]
+    pub field_6: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, tag = "7")]
+    pub field_7: i32,
+    #[prost(int32, tag = "8")]
+    pub field_8: i32,
+    /// 管理员
+    #[prost(string, repeated, tag = "9")]
+    pub admins: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// Nested message and enum types in `RoomData`.
+pub mod room_data {
+    #[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct RoomMember {
+        #[prost(string, tag = "1")]
+        pub wxid: ::prost::alloc::string::String,
+        /// 群昵称
+        #[prost(string, optional, tag = "2")]
+        pub name: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(int32, tag = "3")]
+        pub state: i32,
+    }
 }
 #[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
