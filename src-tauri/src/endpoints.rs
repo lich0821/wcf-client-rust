@@ -241,7 +241,7 @@ pub fn get_routes(
     #[derive(OpenApi)]
     #[openapi(
         info(description = "<a href='https://github.com/lich0821/WeChatFerry'>WeChatFerry</a> 一个玩微信的工具。<table align='left'><tbody><tr><td align='center'><img width='160' alt='碲矿' src='https://s2.loli.net/2023/09/25/fub5VAPSa8srwyM.jpg'><div align='center' width='200'>后台回复 <code>WCF</code> 加群交流</div></td><td align='center'><img width='160' alt='赞赏' src='https://s2.loli.net/2023/09/25/gkh9uWZVOxzNPAX.jpg'><div align='center' width='200'>如果你觉得有用</div></td><td width='20%'></td><td width='20%'></td><td width='20%'></td></tr></tbody></table>"),
-        paths(is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
+        paths(refresh_qrcode, is_login, get_self_wxid, get_user_info, get_contacts, get_dbs, get_tables, get_msg_types, save_audio,
             refresh_pyq, send_text, send_image, send_file, send_rich_text, send_pat_msg, forward_msg, save_image,save_file,
             recv_transfer, query_sql, accept_new_friend, add_chatroom_member, invite_chatroom_member,
             delete_chatroom_member, revoke_msg, query_room_member),
@@ -264,7 +264,8 @@ pub fn get_routes(
         .and(warp::path::tail())
         .and(warp::any().map(move || config.clone()))
         .and_then(serve_swagger);
-
+    
+    build_route_fn!(qrcode, GET "qrcode", refresh_qrcode, wechat);
     build_route_fn!(islogin, GET "islogin", is_login, wechat);
     build_route_fn!(selfwxid, GET "selfwxid", get_self_wxid, wechat);
     build_route_fn!(userinfo, GET "userinfo", get_user_info, wechat);
@@ -293,6 +294,7 @@ pub fn get_routes(
 
     api_doc
         .or(swagger_ui)
+        .or(qrcode(wechat.clone()))
         .or(islogin(wechat.clone()))
         .or(selfwxid(wechat.clone()))
         .or(userinfo(wechat.clone()))
@@ -350,6 +352,19 @@ async fn serve_swagger(
                 .body(error.to_string()),
         )),
     }
+}
+
+/// 获取登录二维码
+#[utoipa::path(
+    get,
+    tag = "WCF",
+    path = "/qrcode",
+    responses(
+        (status = 200, body = ApiResponseString, description = "获取登录二维码")
+    )
+)]
+pub async fn refresh_qrcode(wechat: Arc<Mutex<WeChat>>) -> Result<Json, Infallible> {
+    wechat_api_handler!(wechat, WeChat::refresh_qrcode, "获取登录二维码")
 }
 
 /// 查询登录状态

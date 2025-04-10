@@ -169,11 +169,58 @@ impl WeChat {
             cmd_socket,
             msg_socket: None,
         };
-        info!("等待微信登录...");
-        while !wc.clone().is_login().unwrap() {
+        info!("注入成功");
+        /* while !wc.clone().is_login().unwrap() {
             sleep(Duration::from_secs(1));
+        } */
+        if(wc.clone().is_login().unwrap()){
+            info!("微信登录成功");  
+        }else{
+            info!("微信未登录");
         }
-        let _ = wc.enable_recv_msg();
+        let mut wc_clone = wc.clone(); // 克隆一份 wc 给新线程使用
+        thread::spawn(move || { // 启动一个新线程
+            info!("启动登录状态检测线程..."); // Starting login status check thread...
+            loop {
+                match wc_clone.is_login() {
+                    Ok(true) => {
+                        // 已经登录
+                        info!("检测到微信已登录，尝试启用消息接收..."); // WeChat logged in detected, attempting to enable message receiving...
+                        // 检查是否已经启用了监听，避免重复启用 (可选，取决于 enable_recv_msg 的实现)
+                        if !wc_clone.listening.load(Ordering::SeqCst) {
+                            match wc_clone.enable_recv_msg() {
+                                Ok(_) => {
+                                    // enable_recv_msg 成功后，应该在内部设置 listening = true
+                                    // 如果 enable_recv_msg 不设置，需要在这里手动设置:
+                                    // wc_clone.listening.store(true, Ordering::SeqCst);
+                                    info!("消息接收已成功启用。"); // Message receiving enabled successfully.
+                                    break; // 成功启用后退出循环
+                                }
+                                Err(e) => {
+                                    // error!("启用消息接收失败: {:?}，将在一秒后重试...", e); // Failed to enable message receiving, will retry in 1 second...
+                                    // 这里可以选择继续尝试或在某些错误下退出
+                                    thread::sleep(Duration::from_secs(1));
+                                }
+                            }
+                        } else {
+                            info!("消息接收已启用，检测线程退出。"); // Message receiving already enabled, check thread exiting.
+                            break; // 如果已经启用了，也退出循环
+                        }
+                    }
+                    Ok(false) => {
+                        // 尚未登录
+                        //info!("微信未登录，1秒后重新检测..."); // WeChat not logged in, checking again in 1 second...
+                        thread::sleep(Duration::from_secs(1)); // 等待1秒
+                    }
+                    Err(e) => {
+                        // is_login 调用出错
+                        error!("检测登录状态时发生错误: {:?}，检测进程退出", e); // Error checking login status, retrying in 1 second...
+                        break;
+                    }
+                }
+            }
+            info!("登录状态检测线程结束。"); // Login status check thread finished.
+        });
         wc
     }
 
@@ -230,6 +277,10 @@ impl WeChat {
         let rsp = try_cmd!(wcf::Response::decode(msg.as_slice()), "解码失败");
         msg.clear();
         Ok(rsp.msg)
+    }
+
+    pub fn refresh_qrcode(&self) -> Result<String, Box<dyn std::error::Error>> {
+        execute_wcf_command!(self, Functions::FuncRefreshQrcode, Str, "获取登录二维码 ")
     }
 
     pub fn is_login(&self) -> Result<bool, Box<dyn std::error::Error>> {
@@ -357,6 +408,7 @@ impl WeChat {
                     }
                     Err(e) => {
                         error!("消息出队失败: {}", e);
+                        break;
                     }
                 }
             }

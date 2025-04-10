@@ -27,6 +27,7 @@ const startOrStop = async () => {
             await wechatStore.stop();
         } else {
             await wechatStore.start();
+            // todo 循环检测，一直等到加载成功
             var getUserInfoTask = window.setInterval(async function logname() {
                 await wechatStore.updateSlefInfo();
                 clearInterval(getUserInfoTask)

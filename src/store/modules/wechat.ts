@@ -16,8 +16,11 @@ export const useWechatStore = defineStore('wechat', {
         },
         async updateSlefInfo() {
             if(this.isServerRunning){
-                this.selfInfo = await wcf_api.userinfo();
-                console.log(this.selfInfo);
+                const isLogin = await wcf_api.isLogin();
+                if(isLogin){
+                    this.selfInfo = await wcf_api.userinfo();
+                    console.log(this.selfInfo);
+                }
             }
         },
         async getRunningFlag() { 
