@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
+#![recursion_limit = "256"]
 use chrono::Local;
 use handler::event_entity::Event;
 use local_ip_address::local_ip;
