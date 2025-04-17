@@ -5,6 +5,8 @@ use handler::event_entity::Event;
 use local_ip_address::local_ip;
 use log::{info, Level, LevelFilter, Log, Metadata, Record};
 use service::global_service::{initialize_global, GLOBAL};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use wechat_config::WechatConfig;
 use std::fs::{self, File};
 use std::io::Write;
@@ -142,8 +144,6 @@ async fn stop_server(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<()
         } else {
             info!("服务已停止");
         }
-
-        
     }
 
     info!("服务停止");
@@ -157,29 +157,43 @@ async fn confirm_exit(app_handle: tauri::AppHandle) {
 }
 
 
-
-// fn handle_system_tray_event(app_handle: &tauri::AppHandle, event: tauri::SystemTrayEvent) {
-//     match event {
-//         tauri::SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-//             "quit" => {
-//                 app_handle.emit_all("request-exit", ()).unwrap();
-//             }
-//             _ => {}
-//         },
-//         tauri::SystemTrayEvent::LeftClick { .. } => {
-//             if let Some(window) = app_handle.get_window("main") {
-//                 window.show().unwrap();
-//                 window.set_focus().unwrap();
-//             }
-//         }
-//         _ => {}
-//     }
-// }
-
+// 处理托盘菜单事件
+fn handle_system_tray_menu_event(app_handle: &AppHandle, event: tauri::menu::MenuEvent) {
+    match event.id.as_ref() {
+        "quit" => {
+            // println!("quit menu item was clicked");
+            // app.exit(0);
+            app_handle.emit("request-exit", ()).unwrap();
+        }
+        _ => {
+            println!("menu item {:?} not handled", event.id);
+        }
+    }
+}
 
 
 // 处理系统托盘菜单
-fn handle_system_tray_event(window: &Window, event: &WindowEvent) {
+fn handle_system_tray_event(tray: &tauri::tray::TrayIcon, event: tauri::tray::TrayIconEvent) {
+    match event {
+        TrayIconEvent::Click {
+            button: MouseButton::Left,
+            button_state: MouseButtonState::Up,
+            ..
+        } => {
+            let app = tray.app_handle();
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+        _ => {
+            println!("unhandled event {event:?}");
+        }
+    }
+}
+
+// 处理窗口事件
+fn handle_system_windows_event(window: &Window, event: &WindowEvent) {
     match event {
         WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
@@ -190,7 +204,6 @@ fn handle_system_tray_event(window: &Window, event: &WindowEvent) {
         _ => {}
     }
 }
-
 
 fn init_log(handle: AppHandle) {
     log::set_boxed_logger(Box::new(FrontendLogger { app_handle: handle }))
@@ -219,9 +232,6 @@ pub fn run() {
         }
     }
 
-    // let quit = CustomMenuItem::new("quit".to_string(), "退出");
-    // let tray_menu = SystemTrayMenu::new().add_item(quit);
-    // let tray = SystemTray::new().with_menu(tray_menu);
 
     let app = tauri::Builder::default()
         // .plugin(tauri_plugin_shell::init())
@@ -230,9 +240,21 @@ pub fn run() {
         .setup(|app| {
             init_log(app.app_handle().clone());
             initialize_global();
+            // app.get_window("main").unwrap().open_devtools();
+
+            
+            let quit = MenuItem::with_id(app,"quit".to_string(), "退出",true,None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit])?;
+            let _ =TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(true)
+                .on_menu_event(handle_system_tray_menu_event)
+                .on_tray_icon_event(handle_system_tray_event)
+                .build(app)?;
             Ok(())
         })
-        .on_window_event(handle_system_tray_event)
+        .on_window_event(handle_system_windows_event)
         .manage(Arc::new(Mutex::new(AppState {
             http_server_running: false,
         })))
@@ -245,9 +267,6 @@ pub fn run() {
             save_wechat_config,
             read_wechat_config
         ]);
-
-        // .run(tauri::generate_context!())
-        // .expect("error while running tauri application");
 
     app.run(tauri::generate_context!())
         .expect("error while running tauri application");
