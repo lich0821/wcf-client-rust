@@ -76,7 +76,7 @@ macro_rules! build_route_fn {
             warp::path($path)
                 .and(warp::get())
                 .and(warp::any().map(move || wechat.clone()))
-                .and_then($handler)
+                .and_then($handler).boxed()
         }
     };
     ($func_name:ident, GET $path:expr, $handler:expr, PATH $param_type:ty, $wechat:expr) => {
@@ -87,7 +87,7 @@ macro_rules! build_route_fn {
                 .and(warp::path($path))
                 .and(warp::get())
                 .and(warp::any().map(move || wechat.clone()))
-                .and_then($handler)
+                .and_then($handler).boxed()
         }
     };
     ($func_name:ident, GET $path:expr, $handler:expr, QUERY $param_type:ty, $wechat:expr) => {
@@ -98,7 +98,7 @@ macro_rules! build_route_fn {
                 .and(warp::get())
                 .and(warp::query::<$param_type>())
                 .and(warp::any().map(move || wechat.clone()))
-                .and_then($handler)
+                .and_then($handler).boxed()
         }
     };
     ($func_name:ident, POST $path:expr, $handler:expr, $wechat:expr) => {
@@ -108,7 +108,7 @@ macro_rules! build_route_fn {
             warp::path($path)
                 .and(warp::post())
                 .and(warp::any().map(move || wechat.clone()))
-                .and_then($handler)
+                .and_then($handler).boxed()
         }
     };
     ($func_name:ident, POST $path:expr, $handler:expr, QUERY $param_type:ty, $wechat:expr) => {
@@ -119,7 +119,7 @@ macro_rules! build_route_fn {
                 .and(warp::post())
                 .and(warp::query::<$param_type>())
                 .and(warp::any().map(move || wechat.clone()))
-                .and_then($handler)
+                .and_then($handler).boxed()
         }
     };
     ($func_name:ident, POST $path:expr, $handler:expr, JSON, $wechat:expr) => {
@@ -130,7 +130,7 @@ macro_rules! build_route_fn {
                 .and(warp::post())
                 .and(warp::body::json())
                 .and(warp::any().map(move || wechat.clone()))
-                .and_then($handler)
+                .and_then($handler).boxed()
         }
     };
 }

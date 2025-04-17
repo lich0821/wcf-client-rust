@@ -1,66 +1,15 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WcfRust",
+  "version": "39.4.5",
+  "identifier": "com.iamteer.wcf",
   "build": {
     "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:5555/",
     "beforeBuildCommand": "pnpm build",
-    "devPath": "http://localhost:5555/",
-    "distDir": "../dist",
-    "withGlobalTauri": true
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "WcfRust",
-    "version": "39.4.5"
-  },
-  "tauri": {
-    "systemTray": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true
-    },
-    "allowlist": {
-      "all": true,
-      "dialog": {
-        "all": true
-      },
-      "http": {
-        "all": true,
-        "request": true,
-        "scope": ["http://**", "https://**"]
-      },
-      "protocol": {
-        "asset": true,
-        "assetScope": ["**"]
-      },
-      "shell": {
-        "all": false,
-        "open": true
-      }
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.iamteer.wcf",
-      "icon": [
-        "icons/icon.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "resources": [
-        "./src/wcferry/lib", 
-        "./icons", 
-        "./config.json5"
-      ],
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": "",
-        "wix": {
-          "language": ["zh-CN"]
-        }
-      }
-    },
-    "security": {
-      "csp": null
-    },
+  "app": {
     "windows": [{
       "fullscreen": false,
       "minHeight": 900,
@@ -68,6 +17,46 @@
       "title": "WcfRust",
       "minWidth": 1200,
       "center" : true
-    }]
+    }],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "./src/wcferry/lib",
+      "./icons",
+      "./config.json5"
+    ],
+    "windows": {
+      "allowDowngrades": true,
+      "certificateThumbprint": null,
+      "digestAlgorithm": null,
+      "timestampUrl": null,
+      "tsp": false,
+
+      "webviewInstallMode": {
+        "silent": true,
+        "type": "downloadBootstrapper"
+      },
+      "wix": {
+        "language": "zh-CN"
+      }
+    }
+  },
+  "plugins": {
+    "fs": {
+      "all": true,
+      "scope": ["**"]
+    }
   }
 }

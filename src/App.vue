@@ -2,11 +2,11 @@
 import { ElConfigProvider } from 'element-plus';
 import { listen } from '@tauri-apps/api/event';
 import { onMounted } from 'vue';
-import { confirm } from '@tauri-apps/api/dialog';
+import { confirm } from '@tauri-apps/plugin-dialog';
 import wcf from './command/wcf';
 import { useConfigStore } from '@/store/modules/config';
 import { getName, getVersion } from '@tauri-apps/api/app';
-import { appWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 let configStore = useConfigStore();
 
@@ -32,7 +32,7 @@ onMounted(async () => {
 const setWindowsTitle = async () => {
     const app_name = await getName();
     const app_version = await getVersion();
-    await appWindow.setTitle(app_name + "  V" + app_version);
+    await getCurrentWindow().setTitle(app_name + "  V" + app_version);
 }
 </script>
 <template>

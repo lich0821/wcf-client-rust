@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api';
+import { invoke } from '@tauri-apps/api/core';
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { WechatConfig } from '~/types/config';
