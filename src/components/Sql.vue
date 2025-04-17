@@ -1,27 +1,27 @@
 <template>
     <el-container>
         <template>
-            <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5441" width="256" height="256">
+            <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5441" width="256"
+                height="256">
                 <symbol id="icon-copy" viewBox="0 0 1024 1024">
-                    <path :fill="isDark ? '#fff' : '#000'" d="M979.2 192H832V44.8A44.8 44.8 0 0 0 787.2 0h-742.4A44.8 44.8 0 0 0 0 44.8v742.4a44.8 44.8 0 0 0 44.8 44.8H192v147.2A44.8 44.8 0 0 0 236.8 1024h742.4A44.8 44.8 0 0 0 1024 979.2v-742.4a44.8 44.8 0 0 0-44.8-44.8zM64 64H768V768H64z m896 896H256v-128h531.2a44.8 44.8 0 0 0 44.8-44.8V256h128z"></path>
+                    <path :fill="isDark ? '#fff' : '#000'"
+                        d="M979.2 192H832V44.8A44.8 44.8 0 0 0 787.2 0h-742.4A44.8 44.8 0 0 0 0 44.8v742.4a44.8 44.8 0 0 0 44.8 44.8H192v147.2A44.8 44.8 0 0 0 236.8 1024h742.4A44.8 44.8 0 0 0 1024 979.2v-742.4a44.8 44.8 0 0 0-44.8-44.8zM64 64H768V768H64z m896 896H256v-128h531.2a44.8 44.8 0 0 0 44.8-44.8V256h128z">
+                    </path>
                 </symbol>
             </svg>
             <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="256" height="256">
                 <symbol id="icon-ddl" viewBox="0 0 1024 1024">
-                    <path :fill="isDark ? '#fff' : '#000'" d="M140.8 517.2l169.4-164.1 0.1-15.5v-70.4l-258.1 250 258.1 249.9v-70.4l-0.1-15.5zM865.1 512.4l-169.4-164-0.1-15.5v-70.4l258.1 249.9-258.1 250v-70.5l0.1-15.5zM462.2 855h-77.6l159.1-695.4h77.6z"></path>
+                    <path :fill="isDark ? '#fff' : '#000'"
+                        d="M140.8 517.2l169.4-164.1 0.1-15.5v-70.4l-258.1 250 258.1 249.9v-70.4l-0.1-15.5zM865.1 512.4l-169.4-164-0.1-15.5v-70.4l258.1 249.9-258.1 250v-70.5l0.1-15.5zM462.2 855h-77.6l159.1-695.4h77.6z">
+                    </path>
                 </symbol>
-                
+
             </svg>
         </template>
         <el-header>
             <el-space>
                 <el-select v-model="selectedDb" @change="getTables" style="width: 240px">
-                    <el-option
-                        v-for="item in dbOptions"
-                        :key="item.value"
-                        :label="item.label"
-                        :value="item.value"
-                    />
+                    <el-option v-for="item in dbOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
                 <el-button @click="getDb">刷新数据库</el-button>
             </el-space>
@@ -35,30 +35,30 @@
             <splitpanes>
                 <pane min-size="10" max-size="90" size="20">
                     <el-auto-resizer>
-                        <template #default="{height, width}">
-                            <el-table :data="currentDbTables" :height="height" w="full" :show-header="false" highlight-current-row @row-contextmenu="rightClick" size="default" show-overflow-tooltip>
-                                <el-table-column prop="name" label="表名"/>
+                        <template #default="{ height }">
+                            <el-table :data="currentDbTables" :height="height" w="full" :show-header="false"
+                                highlight-current-row @row-contextmenu="rightClick" size="default"
+                                show-overflow-tooltip>
+                                <el-table-column prop="name" label="表名" />
                             </el-table>
                         </template>
                     </el-auto-resizer>
                 </pane>
                 <pane min-size="10" max-size="90" size="80" style="border-left: 1px solid var(--el-border-color)">
                     <splitpanes horizontal>
-                        <pane min-size="10" max-size="90" size="20" style="border-bottom: 1px solid var(--el-border-color);">
-                            <v-ace-editor
-                                ref="aceRef"
-                                v-model:value="content"
-                                lang="sql"
-                                :theme="isDark ? 'monokai' : 'chrome'"
-                                :options="options"
-                            />
+                        <pane min-size="10" max-size="90" size="20"
+                            style="border-bottom: 1px solid var(--el-border-color);">
+                            <v-ace-editor ref="aceRef" v-model:value="content" lang="sql"
+                                :theme="isDark ? 'monokai' : 'chrome'" :options="options" />
                         </pane>
                         <pane min-size="10" max-size="90" size="20">
                             <el-auto-resizer>
-                                <template #default="{ height, width }">
+                                <template #default="{ height }">
                                     <vxe-toolbar ref="toolbarRef" custom></vxe-toolbar>
-                                    <vxe-table ref="tableRef" :data="results" :column-config="{ resizable: true }" :height="height - 60" show-header-overflow border style="margin: 5px;">
-                                        <vxe-column v-for="header in headers" :field="header" :title="header" show-overflow min-width="60" width="120">
+                                    <vxe-table ref="tableRef" :data="results" :column-config="{ resizable: true }"
+                                        :height="height - 60" show-header-overflow border style="margin: 5px;">
+                                        <vxe-column v-for="header in headers" :field="header" :title="header"
+                                            show-overflow min-width="60" width="120">
                                         </vxe-column>
                                     </vxe-table>
                                 </template>
@@ -72,7 +72,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, h } from 'vue';
+import { onMounted, ref } from 'vue';
 import { isDark } from "@/composables";
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { VAceEditor } from 'vue3-ace-editor';
@@ -110,18 +110,18 @@ const options: any = ref({
 const tableNames = ref<any[]>([]);
 const currentDbTables = ref<any[]>([]);
 
-const formatSql = () => { 
+const formatSql = () => {
     if (!aceRef.value) return;
     let instance = aceRef.value.getAceInstance();
     let selected = instance.getSelectedText();
     if (selected) {
-        instance.session.replace(instance.selection.getRange(), format(selected, {language: 'sqlite'}));
-    } else { 
-        content.value = format(content.value, {language: 'sqlite'})
+        instance.session.replace(instance.selection.getRange(), format(selected, { language: 'sqlite' }));
+    } else {
+        content.value = format(content.value, { language: 'sqlite' })
     }
 }
 
-const execCurrentLine = async () => { 
+const execCurrentLine = async () => {
     if (!aceRef.value) return;
     let instance = aceRef.value.getAceInstance();
     let cursorPosition = instance.getCursorPosition();
@@ -138,7 +138,7 @@ const execCurrentLine = async () => {
     }
 }
 
-const execSql = async () => { 
+const execSql = async () => {
     if (!aceRef.value) return;
     let instance = aceRef.value.getAceInstance();
     let sql = instance.getSelectedText();
@@ -146,19 +146,19 @@ const execSql = async () => {
     headers.value = [];
     results.value = [];
     let result = await wcf_api.sql(selectedDb.value, sql);
-    if (result && result.length > 0) { 
+    if (result && result.length > 0) {
         let item = result[0];
         headers.value = Object.keys(item).sort();
         results.value = result;
     }
 }
 
-const getDb = async () => { 
+const getDb = async () => {
     let dbs: any = await wcf_api.dbs();
     let dbNames = dbs.names;
     dbOptions.value = [];
     // 获取所有表名，用于关键字提示
-    for (let i = 0; i < dbNames.length; i++) { 
+    for (let i = 0; i < dbNames.length; i++) {
         let name = dbNames[i];
         dbOptions.value.push({
             label: name,
@@ -170,7 +170,7 @@ const getDb = async () => {
             tableNames.value.push(item.name);
         });
     }
-    if (!selectedDb.value) { 
+    if (!selectedDb.value) {
         selectedDb.value = dbOptions.value.length > 0 ? dbOptions.value[0].value : null;
     }
     await getTables();
@@ -179,12 +179,12 @@ const getDb = async () => {
     let instance = aceRef.value.getAceInstance();
     let completers = instance.completers;
     let index = completers.findIndex((item: any) => item.id && item.id == 'tableCompleter');
-    if (index > -1) { 
+    if (index > -1) {
         completers.splice(index, 1);
     }
     completers.push({
         id: "tableCompleter",
-        getCompletions: function (editor: any, session: any, pos: any, prefix: any, callback: any) {
+        getCompletions: function (_editor: any, _session: any, _pos: any, _prefix: any, callback: any) {
             callback(
                 null,
                 tableNames.value.map(function (table) {
@@ -199,14 +199,14 @@ const getDb = async () => {
     });
 }
 
-const getTables = async () => { 
+const getTables = async () => {
     console.log(selectedDb.value);
     if (!selectedDb.value) return;
     let tableData: any = await wcf_api.tables(selectedDb.value);
     currentDbTables.value = tableData.tables;
 }
 
-const rightClick = async (row: any, column: any, e: MouseEvent) => { 
+const rightClick = async (row: any, _column: any, e: MouseEvent) => {
     console.log(row);
     e.preventDefault();
     ContextMenu.showContextMenu({
@@ -228,14 +228,14 @@ const rightClick = async (row: any, column: any, e: MouseEvent) => {
                 svgIcon: '#icon-ddl',
                 onClick: async () => {
                     const { toClipboard } = useClipboard()
-                    await toClipboard(format(row.sql, {language: 'sqlite'}));
+                    await toClipboard(format(row.sql, { language: 'sqlite' }));
                 }
             }
         ]
     });
 }
 
-onMounted(async () => { 
+onMounted(async () => {
     const $table = tableRef.value
     const $toolbar = toolbarRef.value
     if ($table && $toolbar) {
@@ -243,12 +243,11 @@ onMounted(async () => {
     }
     VxeUI.setTheme(isDark.value ? 'dark' : 'light');
     await getDb();
-    
+
 })
 </script>
 
 <style lang="scss" scoped>
-
 .el-container {
     padding: 0;
     height: calc(100vh - var(--header-height));
@@ -283,7 +282,7 @@ onMounted(async () => {
                 width: 100%;
             }
         }
-        
+
 
         .ace_editor {
             width: 100%;
