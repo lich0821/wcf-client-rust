@@ -19,7 +19,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive } from 'vue';
+import { onMounted } from 'vue';
 import { isDark } from "@/composables";
 import { listen } from '@tauri-apps/api/event';
 import { ref } from 'vue';
@@ -61,7 +61,7 @@ const appendLogWithLimit = (message: any, maxLines = 9999) => {
 }
 
 const handleMsgShowEvent = async () => {
-    const res = await configStore.update();
+    await configStore.update();
 }
 
 const handleOptionsChange = () => {

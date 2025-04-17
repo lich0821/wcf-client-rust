@@ -52,10 +52,10 @@ export const router = createRouter({
     routes: routes
 });
 
-router.beforeEach(async (from: any, to: any) => {
+router.beforeEach(async (_from: any, _to: any) => {
     NProgress.start();
 });
 
-router.afterEach(async (from: any, to: any) => {
+router.afterEach(async (_from: any, _to: any) => {
     NProgress.done();
 });

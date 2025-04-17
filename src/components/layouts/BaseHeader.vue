@@ -28,10 +28,12 @@ const startOrStop = async () => {
         } else {
             await wechatStore.start();
             // todo 循环检测，一直等到加载成功
-            var getUserInfoTask = window.setInterval(async function logname() {
-                await wechatStore.updateSlefInfo();
-                clearInterval(getUserInfoTask)
-            }, 5000);
+            // 因为升级tauri v2 后此提示 window.__TAURI_IPC__ is not a function
+            // 暂时停止获取头像，后期修复
+            // var getUserInfoTask = window.setInterval(async function logname() {
+            //     await wechatStore.updateSlefInfo();
+            //     clearInterval(getUserInfoTask)
+            // }, 5000);
         }
     } catch (err: any) {
         console.error(err);
