@@ -1,0 +1,102 @@
+name: Build CI
+
+on:
+  workflow_call:
+
+jobs:
+  windows:
+    name: Build Windows Artifact
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Compute Cargo cache key
+        id: cargo-hash
+        run: |
+          grep -v '^version = ' src-tauri/Cargo.toml \
+            | shasum -a 256 \
+            | awk '{ print $1 }' > cargo_hash.txt
+          echo "CARGO_CACHE_KEY=$(<cargo_hash.txt)" >> $GITHUB_ENV
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ env.CARGO_CACHE_KEY }}
+          restore-keys: ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo git index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ env.CARGO_CACHE_KEY }}
+          restore-keys: ${{ runner.os }}-cargo-git-
+
+      - name: Cache Cargo target dir
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-cargo-target-${{ env.CARGO_CACHE_KEY }}-$(rustc --version)
+          restore-keys: ${{ runner.os }}-cargo-target-
+
+      - name: Cache Tauri CLI
+        id: tauri-cli-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-tauri*
+          key: ${{ runner.os }}-tauri-cli-${{ env.CARGO_CACHE_KEY }}
+          restore-keys: ${{ runner.os }}-tauri-cli-
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-modules-
+
+      - name: Install dependencies
+        run: |
+          npm i pnpm -g
+          pnpm i
+        shell: bash
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "22.2"
+
+      - name: Install Tauri CLI if needed
+        run: cargo install tauri-cli --version ^1.0.0
+        if: steps.tauri-cli-cache.outputs.cache-hit != 'true'
+
+      - name: Build Tauri bundle
+        run: cargo tauri build
+        working-directory: ./src-tauri
+
+      - name: Create output dir
+        run: mkdir -p output
+        shell: bash
+
+      - name: Copy executables
+        run: cp src-tauri/target/release/bundle/nsis/*.exe output/
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: output/*.exe
