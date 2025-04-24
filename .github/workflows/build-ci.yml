@@ -7,6 +7,7 @@ jobs:
   build:
     name: Build Windows
     runs-on: windows-latest
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -23,19 +24,19 @@ jobs:
           toolchain: stable
           override: true
 
-      # Ignore lines containing 'version = "x.x.x"' and hash the rest of Cargo.lock
+      # Generate custom cache key from Cargo.toml
       - name: Generate custom cache key
-        id: cargo-hash
+        shell: bash
         run: |
-          grep -v '^version = ' src-tauri/Cargo.toml | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
-          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
-          echo "::set-output name=CARGO_CACHE_KEY::$(cat cargo_hash.txt)"
+          grep -v '^version = ' src-tauri/Cargo.toml | sha256sum | cut -d ' ' -f1 | tee cargo_hash.txt
+          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> "$GITHUB_ENV"
 
+      # Cache Rust crates
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
+          key: ${{ runner.os }}-cargo-registry-${{ env.CARGO_CACHE_KEY }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
@@ -43,7 +44,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
+          key: ${{ runner.os }}-cargo-git-${{ env.CARGO_CACHE_KEY }}
           restore-keys: |
             ${{ runner.os }}-cargo-git-
 
@@ -51,36 +52,37 @@ jobs:
         uses: actions/cache@v4
         with:
           path: src-tauri/target
-          key: ${{ runner.os }}-cargo-target-${{ matrix.target }}-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}-$(rustc --version)
+          key: ${{ runner.os }}-cargo-target-${{ env.CARGO_CACHE_KEY }}-$(rustc --version)
           restore-keys: |
             ${{ runner.os }}-cargo-target-
 
-      - name: Cache Tauri CLI (cross-platform)
+      # Cache Tauri CLI binary
+      - name: Cache Tauri CLI
         id: tauri-cli-cache
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/cargo-tauri
             ~/.cargo/bin/cargo-tauri.exe
-          key: ${{ runner.os }}-tauri-cli-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
+          key: ${{ runner.os }}-tauri-cli-${{ env.CARGO_CACHE_KEY }}
           restore-keys: |
             ${{ runner.os }}-tauri-cli-
 
-      - name: Cache pnpm store and modules
+      # Cache only pnpm store, avoid node_modules symlink issues
+      - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.pnpm-store
-            node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-
+            ${{ runner.os }}-pnpm-store-
 
-      - name: Install Node Module
+      # Install frontend dependencies
+      - name: Install Node modules
         run: |
-          npm i pnpm -g
+          npm install -g pnpm
           echo "C:/Users/runneradmin/AppData/Roaming/npm" >> $GITHUB_PATH
-          pnpm i
+          pnpm install --frozen-lockfile --store ~/.pnpm-store
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -88,17 +90,17 @@ jobs:
           version: "22.2"
 
       - name: Install Tauri CLI if not cached
-        run: cargo install tauri-cli --version ^2.0.0
         if: steps.tauri-cli-cache.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli --version ^2.0.0
 
-      - name: Build
+      - name: Build with Tauri
         run: cargo tauri build
         working-directory: ./src-tauri
 
       - name: Create output directory
         run: mkdir output
 
-      - name: Copy files to output
+      - name: Copy executable
         run: cp src-tauri/target/release/bundle/nsis/*.exe output/
 
       - name: Upload artifact
