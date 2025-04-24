@@ -7,6 +7,7 @@ jobs:
   build:
     name: Build Windows
     runs-on: windows-latest
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -25,10 +26,10 @@ jobs:
 
       # Generate custom cache key from Cargo.toml
       - name: Generate custom cache key
-        id: cargo-hash
+        shell: bash
         run: |
-          grep -v '^version = ' src-tauri/Cargo.toml | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
-          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
+          grep -v '^version = ' src-tauri/Cargo.toml | sha256sum | cut -d ' ' -f1 | tee cargo_hash.txt
+          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> "$GITHUB_ENV"
 
       # Cache Rust crates
       - name: Cache Cargo registry
