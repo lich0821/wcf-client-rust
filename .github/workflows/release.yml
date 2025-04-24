@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 jobs:
@@ -47,9 +47,8 @@ jobs:
       - name: Create Windows Archive
         run: zip -r ${{ env.WINDOWS_DIR }}.zip ${{ env.WINDOWS_DIR }}
 
-      - name: Upload Windows binary
+      - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }} # 使用内置 GITHUB_TOKEN
           files: ${{ env.WINDOWS_DIR }}.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.NG_TOKEN }}
