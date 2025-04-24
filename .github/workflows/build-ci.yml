@@ -5,14 +5,13 @@ on:
 
 jobs:
   windows:
-    name: Build Windows Artifact
+    name: Build Windows
     runs-on: windows-latest
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up node
         uses: actions/setup-node@v4
         with:
           node-version: "18"
@@ -24,76 +23,81 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Compute Cargo cache key
+      # Ignore lines containing 'version = "x.x.x"' and hash the rest of Cargo.lock
+      - name: Generate custom cache key
         id: cargo-hash
         run: |
-          grep -v '^version = ' src-tauri/Cargo.toml \
-            | shasum -a 256 \
-            | awk '{ print $1 }' > cargo_hash.txt
-          echo "CARGO_CACHE_KEY=$(<cargo_hash.txt)" >> $GITHUB_ENV
+          grep -v '^version = ' src-tauri/Cargo.toml | shasum -a 256 | awk '{ print $1 }' > cargo_hash.txt
+          echo "CARGO_CACHE_KEY=$(cat cargo_hash.txt)" >> $GITHUB_ENV
+          echo "::set-output name=CARGO_CACHE_KEY::$(cat cargo_hash.txt)"
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ env.CARGO_CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-cargo-registry-
+          key: ${{ runner.os }}-cargo-registry-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
 
       - name: Cache Cargo git index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ env.CARGO_CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-cargo-git-
+          key: ${{ runner.os }}-cargo-git-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
 
-      - name: Cache Cargo target dir
+      - name: Cache Cargo target directory
         uses: actions/cache@v4
         with:
           path: src-tauri/target
-          key: ${{ runner.os }}-cargo-target-${{ env.CARGO_CACHE_KEY }}-$(rustc --version)
-          restore-keys: ${{ runner.os }}-cargo-target-
+          key: ${{ runner.os }}-cargo-target-${{ matrix.target }}-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}-$(rustc --version)
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-
 
-      - name: Cache Tauri CLI
+      - name: Cache Tauri CLI (cross-platform)
         id: tauri-cli-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/bin/cargo-tauri*
-          key: ${{ runner.os }}-tauri-cli-${{ env.CARGO_CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-tauri-cli-
+          path: |
+            ~/.cargo/bin/cargo-tauri
+            ~/.cargo/bin/cargo-tauri.exe
+          key: ${{ runner.os }}-tauri-cli-${{ steps.cargo-hash.outputs.CARGO_CACHE_KEY }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-cli-
 
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-node-modules-
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
-      - name: Install dependencies
+      - name: Install Node Module
         run: |
           npm i pnpm -g
+          echo "C:/Users/runneradmin/AppData/Roaming/npm" >> $GITHUB_PATH
           pnpm i
-        shell: bash
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
           version: "22.2"
 
-      - name: Install Tauri CLI if needed
+      - name: Install Tauri CLI if not cached
         run: cargo install tauri-cli --version ^1.0.0
         if: steps.tauri-cli-cache.outputs.cache-hit != 'true'
 
-      - name: Build Tauri bundle
+      - name: Build
         run: cargo tauri build
         working-directory: ./src-tauri
 
-      - name: Create output dir
-        run: mkdir -p output
-        shell: bash
+      - name: Create output directory
+        run: mkdir output
 
-      - name: Copy executables
+      - name: Copy files to output
         run: cp src-tauri/target/release/bundle/nsis/*.exe output/
-        shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
