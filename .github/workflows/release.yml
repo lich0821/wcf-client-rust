@@ -2,33 +2,40 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   build:
     uses: ./.github/workflows/build-ci.yml
 
-  publish:
+  release:
     name: Publish Release
-    needs: build
     runs-on: ubuntu-latest
+    needs: build
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Determine version info
+      - name: Determine Release Info
+        env:
+          GITHUB_REF: ${{ github.ref }}
         run: |
           VERSION=${GITHUB_REF##*/}
           MAJOR=${VERSION%%.*}
-          MINOR=${VERSION#*.}; MINOR=${MINOR%%.*}
+          MINOR=${VERSION%.*}
+          MINOR=${MINOR#*.}
           PATCH=${VERSION##*.}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "WINDOWS_DIR=WeChatFerry_${MAJOR}.${MINOR}.${PATCH}_windows_x64" >> $GITHUB_ENV
+          echo "INNER_DIR=WeChatFerry-$VERSION" >> $GITHUB_ENV
 
-      - name: Create directory
+      - name: Create Windows Directory
         run: mkdir -p ${{ env.WINDOWS_DIR }}
 
       - name: Download Windows artifact
@@ -37,10 +44,10 @@ jobs:
           name: windows
           path: ${{ env.WINDOWS_DIR }}
 
-      - name: Zip Windows bundle
+      - name: Create Windows Archive
         run: zip -r ${{ env.WINDOWS_DIR }}.zip ${{ env.WINDOWS_DIR }}
 
-      - name: Publish to GitHub Releases
+      - name: Upload Windows binary
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ env.WINDOWS_DIR }}.zip
